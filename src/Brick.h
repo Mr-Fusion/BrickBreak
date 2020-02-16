@@ -33,16 +33,16 @@ class Brick
     }
 
     bool checkCollision( SDL_Rect foreignObj){
-        if (dim.y > ( foreignObj.y + foreignObj.h ) )
+        if (dim.y >= ( foreignObj.y + foreignObj.h ) )
             return false;
 
-        if (dim.y + dim.h < foreignObj.y)
+        if (dim.y + dim.h <= foreignObj.y)
             return false;
                 
-        if (dim.x + dim.w < foreignObj.x)
+        if (dim.x + dim.w <= foreignObj.x)
             return false;
                     
-        if (dim.x > foreignObj.x + foreignObj.w)
+        if (dim.x >= foreignObj.x + foreignObj.w)
             return false;
 
         return true;

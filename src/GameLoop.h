@@ -36,7 +36,7 @@ class GameLoop : public GameState
     bool gameOver;
 
     // Player Input Control Flags
-    bool lInput,rInput,uInput,dInput;
+    bool lInput,rInput,uInput,dInput,spInput;
 
     SDL_Color textColor;
 
@@ -75,10 +75,10 @@ class GameLoop : public GameState
 
     std::vector<Brick*> wall;
 
-    // Temp Variables
-    SDL_Point   ballVel;
-    SDL_Rect    ballNextPos;
-    int         hitCntX, hitCntY;
+    // Temp variables
+    int offsetPB;
+    bool stickyP, stuck, piercing;
+    int hitSpeed;
 
     ///Constructor Function
     GameLoop(){
@@ -104,7 +104,10 @@ class GameLoop : public GameState
         lives = 0;
         score = 0;
 
-        //wall.reserve(3);
+        stickyP = true;
+        stuck = true;
+        offsetPB = player.getDim().w/2;
+        piercing = false;
 
         //Load media
         if( !loadMedia() )
@@ -260,6 +263,72 @@ class GameLoop : public GameState
 
     }
 
+    void hitDetection(){
+
+        // Temp Variables
+        SDL_Point   ballVel = ball.getVel();
+        SDL_Rect    ballNextPos = ball.getDim();
+        int         hitCntX, hitCntY;
+
+        hitCntX = hitCntY = 0;
+        ballNextPos.x += ballVel.x;
+        ballNextPos.y += ballVel.y;
+
+        for (int i = wall.size()-1; i >= 0 ; i--){
+
+            if (wall[i]->checkCollision(ballNextPos) == true){
+                if (ballVel.x >= 0){
+                    if ( ball.checkCollE(wall[i]->getDim()) == false )
+                        hitCntX++;
+                }
+                else {
+                    if ( ball.checkCollW(wall[i]->getDim()) == false )
+                        hitCntX++;
+                }
+
+                if (ballVel.y >= 0){
+                    if ( ball.checkCollS(wall[i]->getDim()) == false )
+                        hitCntY++;
+                }
+                else {
+                    if ( ball.checkCollN(wall[i]->getDim()) == false )
+                        hitCntY++;
+                }
+                delete wall[i];
+                wall.erase(wall.begin()+i);
+                score += 10;
+            }
+
+        }
+
+        if (!piercing){
+            if (hitCntX > 0 || hitCntY > 0){
+                if (hitCntY > hitCntX)
+                    ball.vBounce();
+                else if (hitCntY < hitCntX)
+                    ball.hBounce();
+                else {
+                    ball.vBounce();
+                    ball.hBounce();
+                }
+            }
+        }
+
+
+        if ( ( ball.getDim().y < 0 ) && ( ball.getVel().y < 0 ) ) {
+            ball.vBounce();
+        }
+
+        if ( ( ball.getDim().x > SCREEN_WIDTH - ball.getDim().w ) && ( ball.getVel().x > 0 ) ) {
+            ball.hBounce();
+        }
+
+        if ( ( ball.getDim().x < 0 ) && ( ball.getVel().x < 0 ) ) {
+            ball.hBounce();
+        }
+
+    }
+
     ///Handles Player input
     void handleEvent( SDL_Event* e){
 
@@ -292,6 +361,9 @@ class GameLoop : public GameState
                 case SDLK_s:
                     dInput = true;
                 break;
+                case SDLK_SPACE:
+                    spInput = true;
+                break;
                 case SDLK_ESCAPE:
                     set_next_state(STATE_MENU);
                 break;
@@ -316,6 +388,9 @@ class GameLoop : public GameState
                 case SDLK_s:
                     dInput = false;
                 break;
+                case SDLK_SPACE:
+                    spInput = false;
+                break;
             }
         }
         
@@ -332,71 +407,53 @@ class GameLoop : public GameState
             if (rInput)
                 player.moveRight();
 
-            ballVel = ball.getVel();
-            ballNextPos = ball.getDim();
-            ballNextPos.x += ballVel.x;
-            ballNextPos.y += ballVel.y;
-            hitCntX = hitCntY = 0;
+            // Check for collisions between ball(s) and brick(s)
+            hitDetection();
 
-            for (int i = wall.size()-1; i >= 0 ; i--){
 
-                if (wall[i]->checkCollision(ballNextPos) == true){
-                    if (ballVel.x >= 0){
-                        if ( ball.checkCollE(wall[i]->getDim()) == false )
-                            hitCntX++;
-                    }
-                    else {
-                        if ( ball.checkCollW(wall[i]->getDim()) == false )
-                            hitCntX++;
-                    }
-
-                    if (ballVel.y >= 0){
-                        if ( ball.checkCollS(wall[i]->getDim()) == false )
-                            hitCntY++;
-                    }
-                    else {
-                        if ( ball.checkCollN(wall[i]->getDim()) == false )
-                            hitCntY++;
-                    }
-                    delete wall[i];
-                    wall.erase(wall.begin()+i);
-                    score += 10;
-                }
-
-            }
-
-            if (hitCntX > 0 || hitCntY > 0){
-                if (hitCntY > hitCntX)
-                    ball.vBounce();
-                else if (hitCntY < hitCntX)
-                    ball.hBounce();
-                else {
-                    ball.vBounce();
-                    ball.hBounce();
-                }
-            }
 
             // Ball Logic
             ball.update();
 
             if (player.checkCollision(ball.getDim())){
-                ball.setVel( ( ball.getDim().x - (player.getDim().x + player.getDim().w/2 ) ) / 4, -ball.vel.y);
+                offsetPB = ball.getDim().x - player.getDim().x;
+                if (stickyP){
+                    ball.setVel(0,0);
+                    stuck = true;
+                }
+                else {
+                    hitSpeed = ball.getDim().x - ( player.getDim().x + player.getDim().w/2);
+
+                    if ( hitSpeed> 0)
+                        ball.setVel( ( hitSpeed + (player.getDim().w / 10) ) / (player.getDim().w / 10) , -ball.vel.y);
+                    else
+                        ball.setVel( ( hitSpeed - (player.getDim().w / 10) ) / (player.getDim().w / 10) , -ball.vel.y);
+                    
+                }
+                
             }
 
-            if ( ( ball.getDim().y > SCREEN_HEIGHT - ball.getDim().h ) && ( ball.getVel().y > 0 ) ) {
-                ball.vBounce();
+            if (stuck){
+                ball.setPos(player.getDim().x + offsetPB, player.getDim().y - ball.getDim().h );
+                if (spInput){
+                    hitSpeed = ball.getDim().x - ( player.getDim().x + player.getDim().w/2);
+                    if ( hitSpeed> 0)
+                        ball.setVel( ( hitSpeed + (player.getDim().w / 10) ) / (player.getDim().w / 10) , -BALL_VELOCITY);
+                    else
+                        ball.setVel( ( hitSpeed - (player.getDim().w / 10) ) / (player.getDim().w / 10) , -BALL_VELOCITY);
+
+                    stuck = false;
+                    stickyP = false;
+                }
             }
 
-            if ( ( ball.getDim().y < 0 ) && ( ball.getVel().y < 0 ) ) {
-                ball.vBounce();
-            }
-
-            if ( ( ball.getDim().x > SCREEN_WIDTH - ball.getDim().w ) && ( ball.getVel().x > 0 ) ) {
-                ball.hBounce();
-            }
-
-            if ( ( ball.getDim().x < 0 ) && ( ball.getVel().x < 0 ) ) {
-                ball.hBounce();
+            if  ( ball.getDim().y > SCREEN_HEIGHT + 10 ) {
+                lives--;
+                updateLivesText();
+                offsetPB = player.getDim().w/2;
+                stuck = true;
+                if (lives == 0)
+                    gameOver = true;
             }
 
         }
@@ -408,6 +465,7 @@ class GameLoop : public GameState
                 levelBegin = false;
             }
         }
+
     }
 
     void render(){

@@ -13,11 +13,6 @@ Game Engine TODO:
 
 Breakout TODO:
 
-- Implement start sequence
-	* Ball should be "served" by player via the paddle
-- Implement Game Over/Loss condition
-	* Remove bottom collision
-	* Implement lives
 - Implement unique levels
 	* How should levels be loaded and stored?
 - Implement different brick types
@@ -43,3 +38,5 @@ Breakout TODO:
 	* What should be the min/max ball speed?
 	* What size should the bricks be?
 	* Prevent paddle from sending ball directly upward
+- Miscellaneous
+	* Improve transitions (Game start, lose ball, game over, etc)

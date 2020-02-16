@@ -19,8 +19,8 @@ extern TTF_Font *gFont = NULL;
 #define INCREMENTAL_REV     0
 
 //Screen dimension constants
-#define SCREEN_WIDTH        640
-#define SCREEN_HEIGHT       480
+#define SCREEN_WIDTH        690//640
+#define SCREEN_HEIGHT       720//480
 #define SCREEN_FPS          60
 
 const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;
