@@ -67,8 +67,7 @@ class Paddle
     }
 
     void render(){
-
-    	SDL_RenderFillRect(gRenderer, &dim);
+        SDL_RenderFillRect(gRenderer, &dim);
     }
 
 };

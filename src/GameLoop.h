@@ -145,6 +145,12 @@ class GameLoop : public GameState
         livesTextTexture.free();
         lvlTextTexture.free();
         scoreTextTexture.free();
+
+        //delete all pointers in the wall vector and clear all elements
+        for (int i = wall.size(); i >= 0; i--){
+            delete wall[i];
+        }
+        wall.clear();
     }
 
     void startGame()
@@ -250,7 +256,7 @@ class GameLoop : public GameState
 
         for (int i = 0; i < NUM_COLS; i++){
             for (int j = 0; j < NUM_ROWS; j++)
-                wall.push_back(new Brick(HOR_OFFSET + BRICK_WIDTH * i, VER_OFFSET + BRICK_HEIGHT * j));
+                wall.push_back(new Brick(HOR_OFFSET + BRICK_WIDTH * i, VER_OFFSET + BRICK_HEIGHT * j, j));
         }
 
         // Update level string and display text on screen
@@ -294,9 +300,20 @@ class GameLoop : public GameState
                     if ( ball.checkCollN(wall[i]->getDim()) == false )
                         hitCntY++;
                 }
-                delete wall[i];
-                wall.erase(wall.begin()+i);
-                score += 10;
+                switch (wall[i]->getType()){
+                    case BRICK_GRAY:
+                        wall[i]->setType(BRICK_WHITE);
+                        break;
+                    case BRICK_DARK:
+                        wall[i]->setType(BRICK_GRAY);
+                        break;
+                    default:
+                        delete wall[i];
+                        wall.erase(wall.begin()+i);
+                        score += 10;
+                        // BUG: Why does enabling this code cause flickering for SDL_RenderFillRect functions?
+                        //updateScoreText();
+                }
             }
 
         }
@@ -469,6 +486,7 @@ class GameLoop : public GameState
     }
 
     void render(){
+
 
         // Set background color and fill
         SDL_SetRenderDrawColor( gRenderer, bgR, bgG, bgB, 0xFF );

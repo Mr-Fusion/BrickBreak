@@ -16,20 +16,16 @@ Breakout TODO:
 - Implement unique levels
 	* How should levels be loaded and stored?
 - Implement different brick types
-	* Different colors/textures
 	* Different Functionality
-		> Multiple hits
 		> Unbreakable
 		> Explosion?
 		> Ghost Bricks?
-- Implement Powerups
+- Implement Powerups: Powerup class/object
 	* Multiball
-	* Piercing
 	* "fiery/explosion"
 	* Slow/Speedup ball
 	* Widen/Shrink Paddle
 	* Shooting?
-	* Stickyball?
 - Special effects?
 	* Ball Trail
 	* Bounce effects
@@ -40,3 +36,7 @@ Breakout TODO:
 	* Prevent paddle from sending ball directly upward
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
+
+Known Bugs:
+
+- Re-rendering and updating the score text causes all SDL_RenderFillRect entities to flicker. Enabling FPS debug causes these entities to be rendered as magenta
