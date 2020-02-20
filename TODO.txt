@@ -29,11 +29,10 @@ Breakout TODO:
 - Special effects?
 	* Ball Trail
 	* Bounce effects
+	* Special Brick hits
 - General Balancing
-	* What size should the game field be?
 	* What should be the min/max ball speed?
-	* What size should the bricks be?
-	* Prevent paddle from sending ball directly upward
+	* Adjust paddle bounce angle behavior
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 

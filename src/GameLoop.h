@@ -16,10 +16,10 @@
 
 #define DEFAULT_LIVES       3
 #define NUM_BRICKS          60
-#define NUM_ROWS            6
-#define NUM_COLS            10
-#define HOR_OFFSET          SCREEN_WIDTH/8
-#define VER_OFFSET          SCREEN_HEIGHT/8
+#define NUM_ROWS            18
+#define NUM_COLS            11
+#define HOR_OFFSET          0//SCREEN_WIDTH/8
+#define VER_OFFSET          48//SCREEN_HEIGHT/8
 
 class GameLoop : public GameState
 {
