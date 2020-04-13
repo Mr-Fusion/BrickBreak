@@ -13,8 +13,6 @@ Game Engine TODO:
 
 Breakout TODO:
 
-- Implement unique levels
-	* How should levels be loaded and stored?
 - Implement different brick types
 	* Different Functionality
 		> Unbreakable
@@ -38,4 +36,5 @@ Breakout TODO:
 
 Known Bugs:
 
-- Re-rendering and updating the score text causes all SDL_RenderFillRect entities to flicker. Enabling FPS debug causes these entities to be rendered as magenta
+- Whichever texture is rendered last causes all gRenderer entities to flicker when updated
+	* Potentially need to take load off gRenderer somehow

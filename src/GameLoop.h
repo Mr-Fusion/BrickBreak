@@ -3,8 +3,11 @@
 
 #include <SDL.h>
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include "Const.h"
 #include "GameState.h"
@@ -15,11 +18,12 @@
 #include "Brick.h"
 
 #define DEFAULT_LIVES       3
-#define NUM_BRICKS          60
 #define NUM_ROWS            18
 #define NUM_COLS            11
-#define HOR_OFFSET          0//SCREEN_WIDTH/8
-#define VER_OFFSET          48//SCREEN_HEIGHT/8
+#define NUM_BRICKS          NUM_ROWS * NUM_COLS
+
+#define SCOREBOARD_WIDTH    SCREEN_WIDTH
+#define SCOREBOARD_HEIGHT   60
 
 class GameLoop : public GameState
 {
@@ -31,9 +35,10 @@ class GameLoop : public GameState
     int score;
 
     // Gameplay Event Flags
-    bool levelBegin;
-    bool showLvl;
-    bool gameOver;
+    bool f_LevelBegin;
+    bool f_ShowLvl;
+    bool f_GameOver;
+    bool f_LevelComplete;
 
     // Player Input Control Flags
     bool lInput,rInput,uInput,dInput,spInput;
@@ -42,6 +47,9 @@ class GameLoop : public GameState
 
     // Background color
     int bgR, bgG, bgB;
+
+    // Scoreboard color
+    int scR, scG, scB;
 
     // Sprite color
     int spR, spG, spB;
@@ -69,6 +77,7 @@ class GameLoop : public GameState
 
     // Game Entities
     SDL_Rect field;
+    SDL_Rect scoreBoard;
     Paddle player;
     Ball ball;
     //Brick brick;
@@ -79,35 +88,48 @@ class GameLoop : public GameState
     int offsetPB;
     bool stickyP, stuck, piercing;
     int hitSpeed;
+    int brickMap[NUM_BRICKS];
 
     ///Constructor Function
     GameLoop(){
 
         currentLev = 0;
 
-        showLvl = false;
-        gameOver = false;
+        f_ShowLvl = false;
+        f_GameOver = false;
 
         bgR = bgG = bgB = 0x00;
+
+        scR = scG = scB = 0x0F;
 
         spR = spG = spB = 0xFF;
 
         textColor = { spR, spG, spB, 0xFF};
 
         field.x = 0;
-        field.y = 0;
+        field.y = SCOREBOARD_HEIGHT;
         field.w = SCREEN_WIDTH;
-        field.h = SCREEN_HEIGHT;
+        field.h = SCREEN_HEIGHT - field.y;
+
+        scoreBoard.x = 0;
+        scoreBoard.y = 0;
+        scoreBoard.w = SCOREBOARD_WIDTH;
+        scoreBoard.h = SCOREBOARD_HEIGHT;
 
         lInput = rInput = uInput = dInput = false;
 
         lives = 0;
         score = 0;
 
+        for (int i = 0; i < NUM_BRICKS; i++)
+            brickMap[i] = 0;
+/*
         stickyP = true;
         stuck = true;
         offsetPB = player.getDim().w/2;
         piercing = false;
+*/
+        resetBall();
 
         //Load media
         if( !loadMedia() )
@@ -161,6 +183,43 @@ class GameLoop : public GameState
         updateLivesText();
         updateScoreText();
         goNextLevel();
+        CSVread();
+    }
+
+    void CSVread()
+    {
+        std::ifstream fin;
+        std::string line;
+        std::stringstream result;
+
+        result.str( "" );
+        // Open an existing file
+        fin.open("testLvl.csv");
+        while(!fin.eof()){
+            fin>>line;
+            result<<line<<" ";
+        }
+        result<<"\0";
+        std::string myString = result.str();
+
+        int i = 0;
+        int j = 0;
+        char myChar = NULL;
+        int value = 0;
+        while (myString[i] != '\0'){
+            if (myString[i] >= '0' && myString[i] <= '9'){
+                myChar = myString[i];
+                //printf("Read char: %c\n",myChar);
+                brickMap[j] = myChar - 48; 
+                //printf("Read int: %d\n",value);
+                j++;
+            }
+            i++;
+        }
+
+        printf("CSVRead Complete\n");
+        //myChar = myPointer+ 5;
+        //printf("Read char: %c\n",myChar);
     }
 
     //TODO: Can we streamline the sprite sheet creation into a function?
@@ -220,7 +279,7 @@ class GameLoop : public GameState
     void updateLvlText(int num){
         //Set text to be rendered
         lvlText.str( "" );
-        lvlText << "Mission: " << num;
+        lvlText << "Round: " << num;
 
         //Render text
         lvlTextTexture.setText(lvlText.str().c_str(), textColor);
@@ -242,31 +301,47 @@ class GameLoop : public GameState
         scoreText << "Score: " << score;
 
         //Render text
-        scoreTextTexture.setText(scoreText.str().c_str(), textColor);
+        //scoreTextTexture.setText(scoreText.str().c_str(), textColor);
+        std::string scoreString = scoreText.str();
+        scoreTextTexture.setText(scoreString.c_str(), textColor);
     }
 
     void goNextLevel(){
 
         // Prepare for next level here
         currentLev++;
+        resetBall();
         initLevel();
     }
 
     void initLevel() {
 
-        for (int i = 0; i < NUM_COLS; i++){
-            for (int j = 0; j < NUM_ROWS; j++)
-                wall.push_back(new Brick(HOR_OFFSET + BRICK_WIDTH * i, VER_OFFSET + BRICK_HEIGHT * j, j));
+        CSVread();
+
+        int k = 0;
+        for (int j = 0; j < NUM_ROWS; j++){
+            for (int i = 0; i < NUM_COLS; i++){
+                if ( brickMap[k] != 0)
+                    wall.push_back(new Brick(0 + BRICK_WIDTH * i, SCOREBOARD_HEIGHT + BRICK_HEIGHT * j, brickMap[k]));
+                k++;
+            }
         }
 
         // Update level string and display text on screen
         updateLvlText(currentLev);
-        showLvl = true;
+        f_ShowLvl = true;
 
         // Set countdown to hide level text some time after level begins
         delayTimer.start();
-        levelBegin = true;
+        f_LevelBegin = true;
 
+    }
+
+    void resetBall(){
+        stickyP = true;
+        stuck = true;
+        offsetPB = player.getDim().w/2;
+        piercing = false;
     }
 
     void hitDetection(){
@@ -311,8 +386,11 @@ class GameLoop : public GameState
                         delete wall[i];
                         wall.erase(wall.begin()+i);
                         score += 10;
-                        // BUG: Why does enabling this code cause flickering for SDL_RenderFillRect functions?
-                        //updateScoreText();
+                        updateScoreText();
+                        if (wall.size() == 0){
+                            f_LevelComplete = true;
+                            delayTimer.start();
+                        }
                 }
             }
 
@@ -332,7 +410,7 @@ class GameLoop : public GameState
         }
 
 
-        if ( ( ball.getDim().y < 0 ) && ( ball.getVel().y < 0 ) ) {
+        if ( ( ball.getDim().y < field.y ) && ( ball.getVel().y < 0 ) ) {
             ball.vBounce();
         }
 
@@ -416,7 +494,7 @@ class GameLoop : public GameState
     // Main Game Loop logic flow
     void logic(){
 
-        if (!gameOver){
+        if (!f_GameOver){
             // Player Input/Control Logic
             if (lInput)
                 player.moveLeft();
@@ -430,7 +508,8 @@ class GameLoop : public GameState
 
 
             // Ball Logic
-            ball.update();
+            if (!f_LevelComplete)
+                ball.update();
 
             if (player.checkCollision(ball.getDim())){
                 offsetPB = ball.getDim().x - player.getDim().x;
@@ -470,16 +549,24 @@ class GameLoop : public GameState
                 offsetPB = player.getDim().w/2;
                 stuck = true;
                 if (lives == 0)
-                    gameOver = true;
+                    f_GameOver = true;
             }
 
         }
 
-        if (levelBegin){
+        if (f_LevelBegin){
             if (delayTimer.getTicks() > 3000){
                 delayTimer.stop();
-                showLvl = false;
-                levelBegin = false;
+                f_ShowLvl = false;
+                f_LevelBegin = false;
+            }
+        }
+
+        if (f_LevelComplete){
+            if (delayTimer.getTicks() > 2000){
+                delayTimer.stop();
+                f_LevelComplete = false;
+                goNextLevel();
             }
         }
 
@@ -492,6 +579,10 @@ class GameLoop : public GameState
         SDL_SetRenderDrawColor( gRenderer, bgR, bgG, bgB, 0xFF );
         SDL_RenderFillRect(gRenderer, &field);
 
+        // Set scoreboard color and fill
+        SDL_SetRenderDrawColor( gRenderer, scR, scG, scB, 0xFF );
+        SDL_RenderFillRect(gRenderer, &scoreBoard);
+
         // Set sprite color
         SDL_SetRenderDrawColor( gRenderer, spR, spG, spB, 0xFF );
         player.render();
@@ -503,13 +594,16 @@ class GameLoop : public GameState
         
 
         // Update Text color and render
-        livesTextTexture.setColor(spR, spG, spB);
-        livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );
-
+        // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
         scoreTextTexture.setColor(spR, spG, spB);
         scoreTextTexture.render(5, 1 );
 
-        if (showLvl) {
+        livesTextTexture.setColor(spR, spG, spB);
+        livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );
+
+
+
+        if (f_ShowLvl) {
             lvlTextTexture.setColor(spR, spG, spB);
             lvlTextTexture.render(SCREEN_WIDTH/2 - lvlTextTexture.getWidth()/2, SCREEN_HEIGHT - lvlTextTexture.getHeight() * 2 );
         }

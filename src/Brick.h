@@ -16,15 +16,15 @@ LTexture brickSheet;
 SDL_Rect brickClips[BRICKSHEET_ROWS * BRICKSHEET_COLS];
 
 enum {
-    BRICK_WHITE = 0,
-    BRICK_GRAY = 1,
-    BRICK_DARK = 2,
-    BRICK_RED = 3,
-    BRICK_ORANGE = 4,
-    BRICK_YELLOW = 5,
-    BRICK_GREEN = 6,
-    BRICK_BLUE = 7,
-    BRICK_PURPLE = 8,
+    BRICK_NONE = 0,
+    BRICK_WHITE = 1,
+    BRICK_GRAY = 2,
+    BRICK_DARK = 3,
+    BRICK_RED = 4,
+    BRICK_ORANGE = 5,
+    BRICK_YELLOW = 6,
+    BRICK_GREEN = 7,
+    BRICK_BLUE = 8,
     BRICK_PINK = 9,
     BRICK_TYPE = 10
 };
@@ -34,7 +34,7 @@ bool loadBrickTextures(){
     bool success = true;
 
     if (!brickSheet.hasTexture()){
-        if( !brickSheet.loadFromFile( "../assets/brickSheet.png") )
+        if( !brickSheet.loadFromFile( "../assets/brickSheet_2.png") )
         {
             printf( "Failed to load brick sprite sheet texture!\n" );
             success = false;
