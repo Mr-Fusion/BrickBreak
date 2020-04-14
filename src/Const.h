@@ -16,7 +16,7 @@ extern TTF_Font *gFont = NULL;
 
 #define MAJOR_REV           0
 #define MINOR_REV           1
-#define INCREMENTAL_REV     3
+#define INCREMENTAL_REV     4
 
 //Screen dimension constants
 #define SCREEN_WIDTH        528//640

@@ -8,7 +8,7 @@
 #include "LTexture.h"
 
 #define PICKUP_SIZE		    16
-#define PICKUP_VELOCITY		10
+#define PICKUP_VELOCITY		4
 
 class Pickup
 {
@@ -18,7 +18,7 @@ class Pickup
         SDL_Point vel;
 
     ///Constructor Function
-    Pickup(x,y){
+    Pickup(int x,int y){
 
     	dim.h = PICKUP_SIZE;
     	dim.w = PICKUP_SIZE;

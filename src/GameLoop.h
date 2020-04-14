@@ -16,11 +16,13 @@
 #include "Paddle.h"
 #include "Ball.h"
 #include "Brick.h"
+#include "Pickup.h"
 
 #define DEFAULT_LIVES       3
 #define NUM_ROWS            18
 #define NUM_COLS            11
 #define NUM_BRICKS          NUM_ROWS * NUM_COLS
+#define DEFAULT_LUCK        8
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -80,6 +82,7 @@ class GameLoop : public GameState
     SDL_Rect scoreBoard;
     Paddle player;
     Ball ball;
+    Pickup *pickup = NULL;
     //Brick brick;
 
     std::vector<Brick*> wall;
@@ -88,7 +91,9 @@ class GameLoop : public GameState
     int offsetPB;
     bool stickyP, stuck, piercing;
     int hitSpeed;
+    int pickupRate;
     int brickMap[NUM_BRICKS];
+    SDL_Rect tempDim;
 
     ///Constructor Function
     GameLoop(){
@@ -120,6 +125,7 @@ class GameLoop : public GameState
 
         lives = 0;
         score = 0;
+        pickupRate = 0;
 
         for (int i = 0; i < NUM_BRICKS; i++)
             brickMap[i] = 0;
@@ -180,6 +186,7 @@ class GameLoop : public GameState
         //Initialization goes here
         lives = DEFAULT_LIVES;
         score = 0;
+        pickupRate = DEFAULT_LUCK;
         updateLivesText();
         updateScoreText();
         goNextLevel();
@@ -340,7 +347,9 @@ class GameLoop : public GameState
     void resetBall(){
         stickyP = true;
         stuck = true;
+        //TODO: Revisit "Sticky" Functions
         offsetPB = player.getDim().w/2;
+        ball.setPos(player.getDim().x + offsetPB, player.getDim().y - ball.getDim().h );
         piercing = false;
     }
 
@@ -383,10 +392,21 @@ class GameLoop : public GameState
                         wall[i]->setType(BRICK_GRAY);
                         break;
                     default:
+                        tempDim = wall[i]->getDim();
                         delete wall[i];
                         wall.erase(wall.begin()+i);
                         score += 10;
                         updateScoreText();
+
+                        if ( rand() % pickupRate >= 10){
+                            if (pickup == NULL){
+                                pickup = new Pickup(tempDim.x + tempDim.w/2 - PICKUP_SIZE/2,tempDim.y);
+                                pickupRate = DEFAULT_LUCK;
+                            }
+                        }
+                        else
+                            pickupRate++;
+
                         if (wall.size() == 0){
                             f_LevelComplete = true;
                             delayTimer.start();
@@ -546,14 +566,38 @@ class GameLoop : public GameState
             if  ( ball.getDim().y > SCREEN_HEIGHT + 10 ) {
                 lives--;
                 updateLivesText();
-                offsetPB = player.getDim().w/2;
-                stuck = true;
+                resetBall();
                 if (lives == 0)
                     f_GameOver = true;
             }
-
         }
 
+        //Pickup Logic
+        if (pickup != NULL){
+            bool f_PickupDelete = false;
+            pickup->update();
+
+            tempDim = pickup->getDim();
+
+            if (tempDim.y + tempDim.h > player.getDim().y){
+                if (pickup->checkCollision(player.getDim())){
+                    piercing = true;
+                    score += 100;
+                    updateScoreText();
+                    f_PickupDelete = true;
+                }
+            }
+
+            if (pickup->getDim().y > SCREEN_HEIGHT + 10)
+                f_PickupDelete = true;
+
+            if (f_PickupDelete){
+                delete pickup;
+                pickup = NULL;
+            }
+        }
+
+        //Gamestate flags
         if (f_LevelBegin){
             if (delayTimer.getTicks() > 3000){
                 delayTimer.stop();
@@ -591,7 +635,9 @@ class GameLoop : public GameState
         for (int i = 0; i < wall.size(); i++){
             wall[i]->render();
         }
-        
+
+        if (pickup != NULL)
+            pickup->render();
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
