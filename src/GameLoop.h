@@ -129,12 +129,7 @@ class GameLoop : public GameState
 
         for (int i = 0; i < NUM_BRICKS; i++)
             brickMap[i] = 0;
-/*
-        stickyP = true;
-        stuck = true;
-        offsetPB = player.getDim().w/2;
-        piercing = false;
-*/
+
         resetBall();
 
         //Load media
@@ -308,7 +303,6 @@ class GameLoop : public GameState
         scoreText << "Score: " << score;
 
         //Render text
-        //scoreTextTexture.setText(scoreText.str().c_str(), textColor);
         std::string scoreString = scoreText.str();
         scoreTextTexture.setText(scoreString.c_str(), textColor);
     }
@@ -348,8 +342,9 @@ class GameLoop : public GameState
         stickyP = true;
         stuck = true;
         //TODO: Revisit "Sticky" Functions
-        offsetPB = player.getDim().w/2;
-        ball.setPos(player.getDim().x + offsetPB, player.getDim().y - ball.getDim().h );
+        tempDim = player.getDim();
+        offsetPB = tempDim.w/2;
+        ball.setPos(tempDim.x + offsetPB, tempDim.y - ball.getDim().h );
         piercing = false;
     }
 
@@ -358,15 +353,24 @@ class GameLoop : public GameState
         // Temp Variables
         SDL_Point   ballVel = ball.getVel();
         SDL_Rect    ballNextPos = ball.getDim();
+        SDL_Rect    brickDim;
         int         hitCntX, hitCntY;
 
         hitCntX = hitCntY = 0;
         ballNextPos.x += ballVel.x;
         ballNextPos.y += ballVel.y;
 
+        //--- Brick Hit Detection ---//
+
         for (int i = wall.size()-1; i >= 0 ; i--){
 
+            // Determine if the ball is going to collide with one of the bricks on the playfield.
+            // To simplify calculations, only the "leading" edges of the ball are checked against each brick.
+            // Count the number of total horizontal and vertical collisions;
+            // This will be used to determine the bounce outcome of the ball.
             if (wall[i]->checkCollision(ballNextPos) == true){
+
+                // Horizontal collision detection
                 if (ballVel.x >= 0){
                     if ( ball.checkCollE(wall[i]->getDim()) == false )
                         hitCntX++;
@@ -376,6 +380,7 @@ class GameLoop : public GameState
                         hitCntX++;
                 }
 
+                // Vertical collision detection
                 if (ballVel.y >= 0){
                     if ( ball.checkCollS(wall[i]->getDim()) == false )
                         hitCntY++;
@@ -384,6 +389,8 @@ class GameLoop : public GameState
                     if ( ball.checkCollN(wall[i]->getDim()) == false )
                         hitCntY++;
                 }
+
+                // Resolve outcome for the brick which was hit depending on its type
                 switch (wall[i]->getType()){
                     case BRICK_GRAY:
                         wall[i]->setType(BRICK_WHITE);
@@ -392,30 +399,39 @@ class GameLoop : public GameState
                         wall[i]->setType(BRICK_GRAY);
                         break;
                     default:
-                        tempDim = wall[i]->getDim();
+                        brickDim = wall[i]->getDim();
                         delete wall[i];
                         wall.erase(wall.begin()+i);
                         score += 10;
                         updateScoreText();
 
+                        // Roll for spawning a pickup from eliminated brick
+                        // If the roll is unsuccessful, increase the likelihood for next time
                         if ( rand() % pickupRate >= 10){
                             if (pickup == NULL){
-                                pickup = new Pickup(tempDim.x + tempDim.w/2 - PICKUP_SIZE/2,tempDim.y);
+                                pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
                                 pickupRate = DEFAULT_LUCK;
                             }
                         }
                         else
                             pickupRate++;
 
+                        // If all bricks have been elimated, flag the level as completed
                         if (wall.size() == 0){
                             f_LevelComplete = true;
                             delayTimer.start();
                         }
                 }
             }
-
         }
 
+        //--- Ball Bounce Handling ---//
+
+        // Quick and dirty "algorithm" for determining bounce result after interacting with bricks.
+        // Compare the number of horizonal and vertical collisions:
+        // If more vertical than horizontal: Ball bounces vertically
+        // If more horizontal than vertical: Ball bounces horizontally
+        // If vertical and horizontal collisions are equal: Bounce in both directions (corner hit)
         if (!piercing){
             if (hitCntX > 0 || hitCntY > 0){
                 if (hitCntY > hitCntX)
@@ -429,15 +445,17 @@ class GameLoop : public GameState
             }
         }
 
-
+        // Top edge of field
         if ( ( ball.getDim().y < field.y ) && ( ball.getVel().y < 0 ) ) {
             ball.vBounce();
         }
 
+        // Right edge of field
         if ( ( ball.getDim().x > SCREEN_WIDTH - ball.getDim().w ) && ( ball.getVel().x > 0 ) ) {
             ball.hBounce();
         }
 
+        // Left edge of field
         if ( ( ball.getDim().x < 0 ) && ( ball.getVel().x < 0 ) ) {
             ball.hBounce();
         }
@@ -485,7 +503,6 @@ class GameLoop : public GameState
             }
         }
 
-
         if (e->type == SDL_KEYUP) {
             switch (e->key.keysym.sym) {
                 case SDLK_a:
@@ -515,6 +532,7 @@ class GameLoop : public GameState
     void logic(){
 
         if (!f_GameOver){
+
             // Player Input/Control Logic
             if (lInput)
                 player.moveLeft();
@@ -522,82 +540,103 @@ class GameLoop : public GameState
             if (rInput)
                 player.moveRight();
 
-            // Check for collisions between ball(s) and brick(s)
+            // Handle collisions between ball(s) and brick(s)/playing field
             hitDetection();
-
-
 
             // Ball Logic
             if (!f_LevelComplete)
                 ball.update();
 
-            if (player.checkCollision(ball.getDim())){
-                offsetPB = ball.getDim().x - player.getDim().x;
+            // Register player and ball dimensions
+            SDL_Rect playerDim = player.getDim();
+            SDL_Rect ballDim = ball.getDim();
+
+            // Handle collision between ball and paddle
+            if (player.checkCollision(ballDim)){
+                // TODO: Can offsetPB be moved?
+                offsetPB = ballDim.x - playerDim.x;
+
+                // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
                 if (stickyP){
                     ball.setVel(0,0);
                     stuck = true;
                 }
+                // Otherwise, calculate the new horizontal trajectory of the ball
+                // based on the offset between the middle of the paddle and the point of collision.
+                // A larger offset results in a wider horizontal trajectory
                 else {
-                    hitSpeed = ball.getDim().x - ( player.getDim().x + player.getDim().w/2);
+                    
+                    // TODO: condense these lines to a "LaunchBall" function
+                    hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                     if ( hitSpeed> 0)
-                        ball.setVel( ( hitSpeed + (player.getDim().w / 10) ) / (player.getDim().w / 10) , -ball.vel.y);
+                        ball.setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -ball.vel.y);
                     else
-                        ball.setVel( ( hitSpeed - (player.getDim().w / 10) ) / (player.getDim().w / 10) , -ball.vel.y);
-                    
+                        ball.setVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -ball.vel.y);
                 }
                 
             }
 
+            // Ball Stuck Logic
             if (stuck){
-                ball.setPos(player.getDim().x + offsetPB, player.getDim().y - ball.getDim().h );
+                
+                // Update ball position so its relative position on the paddle remains constant
+                ball.setPos(playerDim.x + offsetPB, playerDim.y - ballDim.h );
+
+                // Release the ball if space input is asserted.
+                // Trajectory is calculated in a similar manner as a regular paddle collision
                 if (spInput){
-                    hitSpeed = ball.getDim().x - ( player.getDim().x + player.getDim().w/2);
+
+                    // TODO: condense these lines to a "LaunchBall" function
+                    hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
+
                     if ( hitSpeed> 0)
-                        ball.setVel( ( hitSpeed + (player.getDim().w / 10) ) / (player.getDim().w / 10) , -BALL_VELOCITY);
+                        ball.setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
                     else
-                        ball.setVel( ( hitSpeed - (player.getDim().w / 10) ) / (player.getDim().w / 10) , -BALL_VELOCITY);
+                        ball.setVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
 
                     stuck = false;
                     stickyP = false;
                 }
             }
 
-            if  ( ball.getDim().y > SCREEN_HEIGHT + 10 ) {
+            // Missed ball logic
+            if  ( ballDim.y > SCREEN_HEIGHT + 10 ) {
                 lives--;
                 updateLivesText();
                 resetBall();
                 if (lives == 0)
                     f_GameOver = true;
             }
-        }
 
-        //Pickup Logic
-        if (pickup != NULL){
-            bool f_PickupDelete = false;
-            pickup->update();
+            // Pickup Logic
+            if (pickup != NULL){
 
-            tempDim = pickup->getDim();
+                bool f_PickupDelete = false;
+                pickup->update();
+                SDL_Rect pickupDim = pickup->getDim();
 
-            if (tempDim.y + tempDim.h > player.getDim().y){
-                if (pickup->checkCollision(player.getDim())){
-                    piercing = true;
-                    score += 100;
-                    updateScoreText();
+                if (pickupDim.y + pickupDim.h > playerDim.y){
+                    if (pickup->checkCollision(playerDim)){
+                        piercing = true;
+                        score += 100;
+                        updateScoreText();
+                        f_PickupDelete = true;
+                    }
+                }
+
+                if (pickupDim.y > SCREEN_HEIGHT + 10)
                     f_PickupDelete = true;
+
+                if (f_PickupDelete){
+                    delete pickup;
+                    pickup = NULL;
                 }
             }
-
-            if (pickup->getDim().y > SCREEN_HEIGHT + 10)
-                f_PickupDelete = true;
-
-            if (f_PickupDelete){
-                delete pickup;
-                pickup = NULL;
-            }
         }
 
-        //Gamestate flags
+        //--- Gamestate flags ---//
+
         if (f_LevelBegin){
             if (delayTimer.getTicks() > 3000){
                 delayTimer.stop();
