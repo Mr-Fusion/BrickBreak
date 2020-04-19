@@ -19,11 +19,13 @@ Breakout TODO:
 		> Explosion?
 		> Ghost Bricks?
 - Implement Powerups: Powerup class/object
-	* Multiball
-	* "fiery/explosion"
+	* "fiery/explosion"? Maybe not.
 	* Slow/Speedup ball
 	* Widen/Shrink Paddle
 	* Shooting?
+	* Identification between powerups
+		~ Different color/texture
+	* How to determine which powerups are active
 - Special effects?
 	* Ball Trail
 	* Bounce effects

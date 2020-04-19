@@ -26,12 +26,17 @@ class Ball
     	dim.y = SCREEN_HEIGHT - BALL_SIZE * 10;
 
         vel.x = BALL_VELOCITY;
-        vel.y = BALL_VELOCITY;
+        vel.y = -BALL_VELOCITY;
+    }
+
+    Ball(SDL_Rect d, SDL_Point v){
+        dim = d;
+        vel = v;
     }
 
     ///Deconstructor
     ~Ball(){
-        printf("Gamestate Object Deconstructing...\n");
+        printf("Ball Object Deconstructing...\n");
 
 
     }
