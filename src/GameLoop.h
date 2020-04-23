@@ -89,7 +89,7 @@ class GameLoop : public GameState
 
     // Temp variables
     int offsetPB;
-    bool stickyP, stuck, piercing;
+    bool stickyP, stuck, piercing, catching;
     int hitSpeed;
     int pickupRate;
     int brickMap[NUM_BRICKS];
@@ -366,6 +366,7 @@ class GameLoop : public GameState
         offsetPB = tempDim.w/2;
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
         piercing = false;
+        catching = false;
     }
 
     // Function to handle hit detection between a ball specified by a pointer, and all bricks on the playing field
@@ -587,7 +588,7 @@ class GameLoop : public GameState
                     offsetPB = ballDim.x - playerDim.x;
 
                     // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
-                    if (stickyP){
+                    if (stickyP || catching){
                         balls[i]->setVel(0,0);
                         stuck = true;
                     }
@@ -662,20 +663,74 @@ class GameLoop : public GameState
 
                 if (pickupDim.y + pickupDim.h > playerDim.y){
                     if (pickup->checkCollision(playerDim)){
-                        //piercing = true;
-                        for (int i = balls.size() - 1; i >= 0 ; i--){
-                            ballDim = balls[i]->getDim();
-                            tempVel = balls[i]->getVel();
-                            if ( tempVel.x > 0)
-                                tempVel.x++;
-                            else
-                                tempVel.x--;
 
-                            balls.push_back(new Ball(ballDim, tempVel));
+                        switch (pickup->type){
+                            case PICKUP_POINT:
+                                score += 100;
+                                updateScoreText();
+                            break;
+
+                            // TODO: Fix catch handling for multiple balls
+                            case PICKUP_CATCH:
+                                catching = true;
+                            break;
+
+                            case PICKUP_MULTI:
+                                for (int i = balls.size() - 1; i >= 0 ; i--){
+                                    ballDim = balls[i]->getDim();
+                                    tempVel = balls[i]->getVel();
+                                    if ( tempVel.x > 0)
+                                        tempVel.x++;
+                                    else
+                                        tempVel.x--;
+
+                                    balls.push_back(new Ball(ballDim, tempVel));
+                                }
+                            break;
+
+                            case PICKUP_PIERCE:
+                                piercing = true;
+                            break;
+
+                            case PICKUP_FAST:
+                                for (int i = balls.size() - 1; i >= 0 ; i--){
+                                    tempVel = balls[i]->getVel();
+                                    if ( tempVel.x > 1)
+                                        tempVel.x++;
+                                    else if ( tempVel.x < -1)
+                                        tempVel.x--;
+
+                                    if ( tempVel.y > 1)
+                                        tempVel.y++;
+                                    else if ( tempVel.y < -1)
+                                        tempVel.y--;
+
+                                    balls[i]->setVel(tempVel.x, tempVel.y);
+                                }
+                            break;
+
+                            case PICKUP_SLOW:
+                                for (int i = balls.size() - 1; i >= 0 ; i--){
+                                    tempVel = balls[i]->getVel();
+                                    if ( tempVel.x > 1)
+                                        tempVel.x--;
+                                    else if ( tempVel.x < -1)
+                                        tempVel.x++;
+
+                                    if ( tempVel.y > 1)
+                                        tempVel.y--;
+                                    else if ( tempVel.y < -1)
+                                        tempVel.y++;
+
+                                    balls[i]->setVel(tempVel.x, tempVel.y);
+                                }
+                            break;
+
                         }
+
                         
-                        score += 100;
-                        updateScoreText();
+                        
+                        
                         f_PickupDelete = true;
                     }
                 }
@@ -733,8 +788,10 @@ class GameLoop : public GameState
             wall[i]->render();
         }
 
-        if (pickup != NULL)
+        if (pickup != NULL){
+            SDL_SetRenderDrawColor( gRenderer, pickup->r, pickup->g, pickup->b, 0xFF );
             pickup->render();
+        }
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
