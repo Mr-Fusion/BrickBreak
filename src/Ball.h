@@ -15,7 +15,9 @@ class Ball
     public:
 
     	SDL_Rect dim;
-        SDL_Point vel;
+        SDL_Point vel, velStored;
+        bool stuck;
+        int offset;
 
     ///Constructor Function
     Ball(){
@@ -25,13 +27,22 @@ class Ball
     	dim.x = SCREEN_WIDTH/2 - BALL_SIZE/2;
     	dim.y = SCREEN_HEIGHT - BALL_SIZE * 10;
 
-        vel.x = BALL_VELOCITY;
-        vel.y = -BALL_VELOCITY;
+        vel.x = velStored.x = BALL_VELOCITY/2;
+        vel.y = velStored.y = -BALL_VELOCITY;
+
+        offset = 0;
+        stuck = false;
     }
 
     Ball(SDL_Rect d, SDL_Point v){
         dim = d;
         vel = v;
+
+        velStored.x = BALL_VELOCITY;
+        velStored.y = -BALL_VELOCITY;
+
+        offset = 0;
+        stuck = false;
     }
 
     ///Deconstructor
@@ -94,6 +105,23 @@ class Ball
         return result;
     }
 
+    bool checkStuck() {
+        return stuck;
+    }
+
+    void setStuck( bool s) {
+        stuck = s;
+    }
+
+    int setOffset( int o) {
+        offset = o;
+        return offset;
+    }
+
+    int getOffset() {
+        return offset;
+    }
+
     SDL_Rect getDim() {
         return dim;
     }
@@ -118,6 +146,19 @@ class Ball
     void setVel(int x, int y){
         vel.x = x;
         vel.y = y;
+    }
+
+    void storeVel(int x, int y){
+        velStored.x = x;
+        velStored.y = y;
+    }
+
+    SDL_Point getStoreVel(){
+        return velStored;
+    }
+
+    void releaseVel() {
+        vel = velStored;
     }
 
     void update(){

@@ -360,10 +360,11 @@ class GameLoop : public GameState
 
     void resetBall(Ball *thisBall){
         stickyP = true;
-        stuck = true;
+        thisBall->setStuck(true);
         //TODO: Revisit "Sticky" Functions
         tempDim = player.getDim();
-        offsetPB = tempDim.w/2;
+        //offsetPB = tempDim.w/2;
+        offsetPB = thisBall->setOffset(tempDim.w/2);
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
         piercing = false;
         catching = false;
@@ -585,12 +586,20 @@ class GameLoop : public GameState
                 // Handle collision between ball and paddle
                 if (player.checkCollision(ballDim)){
                     // TODO: Can offsetPB be moved?
-                    offsetPB = ballDim.x - playerDim.x;
+                    /*offsetPB = */balls[i]->setOffset(ballDim.x - playerDim.x);
+
+                    hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                     // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
                     if (stickyP || catching){
+
+                        if ( hitSpeed> 0)
+                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+                        else
+                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+
                         balls[i]->setVel(0,0);
-                        stuck = true;
+                        balls[i]->setStuck(true);
                     }
                     // Otherwise, calculate the new horizontal trajectory of the ball
                     // based on the offset between the middle of the paddle and the point of collision.
@@ -598,7 +607,7 @@ class GameLoop : public GameState
                     else {
                         
                         // TODO: condense these lines to a "LaunchBall" function
-                        hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
+                        //hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                         if ( hitSpeed> 0)
                             balls[i]->setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
@@ -609,24 +618,26 @@ class GameLoop : public GameState
                 }
 
                 // Ball Stuck Logic
-                if (stuck){
+                if ( balls[i]->checkStuck() ){
                     
                     // Update ball position so its relative position on the paddle remains constant
-                    balls[i]->setPos(playerDim.x + offsetPB, playerDim.y - ballDim.h );
+                    balls[i]->setPos(playerDim.x + balls[i]->getOffset(), playerDim.y - ballDim.h );
 
                     // Release the ball if space input is asserted.
                     // Trajectory is calculated in a similar manner as a regular paddle collision
                     if (spInput){
 
                         // TODO: condense these lines to a "LaunchBall" function
+                        /*
                         hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                         if ( hitSpeed> 0)
                             balls[i]->setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
                         else
                             balls[i]->setVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
-
-                        stuck = false;
+                        */
+                        balls[i]->releaseVel();
+                        balls[i]->setStuck(false);
                         stickyP = false;
                     }
                 }
@@ -664,6 +675,7 @@ class GameLoop : public GameState
                 if (pickupDim.y + pickupDim.h > playerDim.y){
                     if (pickup->checkCollision(playerDim)){
 
+
                         switch (pickup->type){
                             case PICKUP_POINT:
                                 score += 100;
@@ -681,10 +693,22 @@ class GameLoop : public GameState
                                     tempVel = balls[i]->getVel();
                                     if ( tempVel.x > 0)
                                         tempVel.x++;
-                                    else
+                                    else if ( tempVel.x < 0)
                                         tempVel.x--;
 
+                                    // Why does the first multiball pickup spawn a ball stuck on the paddle?
                                     balls.push_back(new Ball(ballDim, tempVel));
+
+                                    // How to assign offset and stuck status to balls spawned while on paddle?
+                                    int j = balls.size()-1;
+                                    if (tempVel.x == 0) {
+                                        tempVel = balls[i]->getStoreVel();
+                                        balls[j]->setOffset(balls[i]->getOffset());
+                                        balls[j]->setStuck(true);
+                                        tempVel.y -= 2;
+                                        balls[j]->storeVel(tempVel.x, tempVel.y);
+                                    }
+
                                 }
                             break;
 
@@ -724,6 +748,10 @@ class GameLoop : public GameState
 
                                     balls[i]->setVel(tempVel.x, tempVel.y);
                                 }
+                            break;
+
+                            case PICKUP_LIFE:
+                                lives++;
                             break;
 
                         }

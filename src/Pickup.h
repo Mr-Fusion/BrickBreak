@@ -59,8 +59,8 @@ class Pickup
     }
 
     void setRandomType(){
-        
-        type = rand() % PICKUP_TYPE;
+
+        type = ( rand() % PICKUP_MULTI ) + 1;//PICKUP_TYPE;
 
         switch (type) {
             case PICKUP_POINT:
