@@ -11,6 +11,10 @@
 #define PADDLE_WIDTH		80
 #define PADDLE_VELOCITY		6
 
+#define PADDLE_WIDTH_MOD    20
+
+#define PADDLE_HIT_DIVIDER  10
+
 class Paddle
 {
     public:
@@ -52,6 +56,10 @@ class Paddle
 
     SDL_Rect getDim() {
         return dim;
+    }
+
+    void setDim(SDL_Rect d) {
+        dim = d;
     }
 
     void moveLeft(){

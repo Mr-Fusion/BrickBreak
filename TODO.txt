@@ -13,30 +13,26 @@ Game Engine TODO:
 
 Breakout TODO:
 
-- Implement different brick types
-	* Different Functionality
-		> Unbreakable
-		> Explosion?
-		> Ghost Bricks?
-- Implement Powerups: Powerup class/object
-	* "fiery/explosion"? Maybe not.
-	* Slow/Speedup ball
-	* Widen/Shrink Paddle
-	* Shooting?
+- Powerups:
 	* Identification between powerups
 		~ Different color/texture
 	* How to determine which powerups are active
+	* Paddle Size should reset between rounds?
+	* Weighted Drop Rates
 - Special effects?
 	* Ball Trail
 	* Bounce effects
 	* Special Brick hits
 - General Balancing
-	* What should be the min/max ball speed?
-	* Adjust paddle bounce angle behavior
+	* What should be the min/max ball speed
+	* Add "xSpeed" variable for game loop which will be added to paddle launch velocity based on speed pickups
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
+	* Incremental level loading
+	* Code Cleanup/Refactoring
 
 Known Bugs:
 
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated
 	* Potentially need to take load off gRenderer somehow
+- Sometimes Quickly exiting and restarting the game can cause the gameloop to skip directly to level 2

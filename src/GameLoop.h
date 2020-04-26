@@ -17,12 +17,17 @@
 #include "Ball.h"
 #include "Brick.h"
 #include "Pickup.h"
+#include "Bullet.h"
 
 #define DEFAULT_LIVES       3
 #define NUM_ROWS            18
 #define NUM_COLS            11
 #define NUM_BRICKS          NUM_ROWS * NUM_COLS
 #define DEFAULT_LUCK        8
+
+#define XVEL_MIN            1
+#define XVEL_MAX            8
+
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -84,12 +89,15 @@ class GameLoop : public GameState
     //Ball ball;
     Pickup *pickup = NULL;
 
+    Bullet *laserA = NULL;
+    Bullet *laserB = NULL;
+
     std::vector<Brick*> wall;
     std::vector<Ball*> balls;
 
     // Temp variables
     int offsetPB;
-    bool stickyP, stuck, piercing, catching;
+    bool stickyP, stuck, piercing, catching, lasers;
     int hitSpeed;
     int pickupRate;
     int brickMap[NUM_BRICKS];
@@ -368,6 +376,7 @@ class GameLoop : public GameState
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
         piercing = false;
         catching = false;
+        lasers = false;
     }
 
     // Function to handle hit detection between a ball specified by a pointer, and all bricks on the playing field
@@ -567,6 +576,125 @@ class GameLoop : public GameState
             // Register player dimensions
             SDL_Rect playerDim = player.getDim();
 
+            if (lasers) {
+                if (spInput) {
+                    if ( laserA == NULL && laserB == NULL ){
+                        laserA = new Bullet(playerDim.x, playerDim.y);
+                        laserB = new Bullet(playerDim.x + playerDim.w - BULLET_WIDTH, playerDim.y);
+                    }
+                }
+            }
+
+            // TODO: Seems Redundant...
+            SDL_Rect    brickDim;
+
+            if (laserA != NULL) {
+                laserA->move();
+
+                for (int i = wall.size()-1; i >= 0 ; i--){
+                    if (wall[i]->checkCollision(laserA->getDim()) == true) {
+                        // TODO: Create function for this routine
+                        // Resolve outcome for the brick which was hit depending on its type
+                        switch (wall[i]->getType()){
+                            case BRICK_GRAY:
+                                wall[i]->setType(BRICK_WHITE);
+                                break;
+                            case BRICK_DARK:
+                                wall[i]->setType(BRICK_GRAY);
+                                break;
+                            default:
+                                brickDim = wall[i]->getDim();
+                                delete wall[i];
+                                wall.erase(wall.begin()+i);
+                                score += 10;
+                                updateScoreText();
+
+                                // Roll for spawning a pickup from eliminated brick
+                                // If the roll is unsuccessful, increase the likelihood for next time
+                                if ( rand() % pickupRate >= 10){
+                                    if (pickup == NULL){
+                                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                                        pickupRate = DEFAULT_LUCK;
+                                    }
+                                }
+                                else
+                                    pickupRate++;
+
+                                // If all bricks have been elimated, flag the level as completed
+                                if (wall.size() == 0){
+                                    f_LevelComplete = true;
+                                    delayTimer.start();
+                                }
+                        }
+                        if (!piercing)
+                            laserA->setAlive( false );
+                    }
+                }
+
+                if (laserA->offScreen())
+                    laserA->setAlive( false );
+
+                if (laserA->checkAlive() == false) {
+                    delete laserA;
+                    laserA = NULL;
+                }
+            }
+
+            if (laserB != NULL) {
+                laserB->move();
+
+                for (int i = wall.size()-1; i >= 0 ; i--){
+                    if (wall[i]->checkCollision(laserB->getDim()) == true) {
+                        // TODO: Create function for this routine
+                        // Resolve outcome for the brick which was hit depending on its type
+                        switch (wall[i]->getType()){
+                            case BRICK_GRAY:
+                                wall[i]->setType(BRICK_WHITE);
+                                break;
+                            case BRICK_DARK:
+                                wall[i]->setType(BRICK_GRAY);
+                                break;
+                            default:
+                                brickDim = wall[i]->getDim();
+                                delete wall[i];
+                                wall.erase(wall.begin()+i);
+                                score += 10;
+                                updateScoreText();
+
+                                // Roll for spawning a pickup from eliminated brick
+                                // If the roll is unsuccessful, increase the likelihood for next time
+                                if ( rand() % pickupRate >= 10){
+                                    if (pickup == NULL){
+                                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                                        pickupRate = DEFAULT_LUCK;
+                                    }
+                                }
+                                else
+                                    pickupRate++;
+
+                                // If all bricks have been elimated, flag the level as completed
+                                if (wall.size() == 0){
+                                    f_LevelComplete = true;
+                                    delayTimer.start();
+                                }
+                        }
+                        if (!piercing)
+                            laserB->setAlive( false );
+
+                    }
+                }
+
+                if (laserB->offScreen())
+                    laserB->setAlive( false );
+
+                if (laserB->checkAlive() == false) {
+                    delete laserB;
+                    laserB = NULL;
+                }
+            }
+
+
+
             // Create structure for ball dimensions
             SDL_Rect ballDim;
             
@@ -584,7 +712,7 @@ class GameLoop : public GameState
                 ballDim = balls[i]->getDim();
 
                 // Handle collision between ball and paddle
-                if (player.checkCollision(ballDim)){
+                if (player.checkCollision(ballDim) && balls[i]->getVel().y > 0){
                     // TODO: Can offsetPB be moved?
                     /*offsetPB = */balls[i]->setOffset(ballDim.x - playerDim.x);
 
@@ -594,9 +722,9 @@ class GameLoop : public GameState
                     if (stickyP || catching){
 
                         if ( hitSpeed> 0)
-                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
                         else
-                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
 
                         balls[i]->setVel(0,0);
                         balls[i]->setStuck(true);
@@ -610,9 +738,9 @@ class GameLoop : public GameState
                         //hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                         if ( hitSpeed> 0)
-                            balls[i]->setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+                            balls[i]->setVel( ( hitSpeed + (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
                         else
-                            balls[i]->setVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -balls[i]->vel.y);
+                            balls[i]->setVel( ( hitSpeed - (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
                     }
                     
                 }
@@ -628,14 +756,6 @@ class GameLoop : public GameState
                     if (spInput){
 
                         // TODO: condense these lines to a "LaunchBall" function
-                        /*
-                        hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
-
-                        if ( hitSpeed> 0)
-                            balls[i]->setVel( ( hitSpeed + (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
-                        else
-                            balls[i]->setVel( ( hitSpeed - (playerDim.w / 10) ) / (playerDim.w / 10) , -BALL_VELOCITY);
-                        */
                         balls[i]->releaseVel();
                         balls[i]->setStuck(false);
                         stickyP = false;
@@ -685,6 +805,7 @@ class GameLoop : public GameState
                             // TODO: Fix catch handling for multiple balls
                             case PICKUP_CATCH:
                                 catching = true;
+                                lasers = false;
                             break;
 
                             case PICKUP_MULTI:
@@ -714,6 +835,43 @@ class GameLoop : public GameState
 
                             case PICKUP_PIERCE:
                                 piercing = true;
+                            break;
+
+                            case PICKUP_SHOOT:
+                                lasers = true;
+                                catching = false;
+                            break;
+
+                            case PICKUP_GROW: // TODO: Interactions with sticky
+
+                                if (playerDim.w < PADDLE_WIDTH + 2 * PADDLE_WIDTH_MOD){
+                                    playerDim.w += PADDLE_WIDTH_MOD;
+                                    playerDim.x -= PADDLE_WIDTH_MOD / 2;
+
+                                    if (playerDim.x < 0)
+                                        playerDim.x = 0;
+                                    if (playerDim.x > SCREEN_WIDTH - playerDim.w)
+                                        playerDim.x = SCREEN_WIDTH - playerDim.w;
+                                    
+                                    player.setDim(playerDim);
+                                }
+
+                            break;
+
+                            case PICKUP_SHRINK: // TODO: Interactions with sticky
+
+                                if (playerDim.w > PADDLE_WIDTH - 2 * PADDLE_WIDTH_MOD){
+                                    playerDim.w -= PADDLE_WIDTH_MOD;
+                                    playerDim.x += PADDLE_WIDTH_MOD / 2;
+
+                                    if (playerDim.x < 0)
+                                        playerDim.x = 0;
+                                    if (playerDim.x > SCREEN_WIDTH - playerDim.w)
+                                        playerDim.x = SCREEN_WIDTH - playerDim.w;
+
+                                    player.setDim(playerDim);
+                                }
+
                             break;
 
                             case PICKUP_FAST:
@@ -752,6 +910,7 @@ class GameLoop : public GameState
 
                             case PICKUP_LIFE:
                                 lives++;
+                                updateLivesText();
                             break;
 
                         }
@@ -816,10 +975,20 @@ class GameLoop : public GameState
             wall[i]->render();
         }
 
+        if ( laserA != NULL){
+            laserA->render();
+        }
+
+        if ( laserB != NULL){
+            laserB->render();
+        }
+
         if (pickup != NULL){
             SDL_SetRenderDrawColor( gRenderer, pickup->r, pickup->g, pickup->b, 0xFF );
             pickup->render();
         }
+
+
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated

@@ -27,7 +27,7 @@ class Ball
     	dim.x = SCREEN_WIDTH/2 - BALL_SIZE/2;
     	dim.y = SCREEN_HEIGHT - BALL_SIZE * 10;
 
-        vel.x = velStored.x = BALL_VELOCITY/2;
+        vel.x = velStored.x = BALL_VELOCITY/4;
         vel.y = velStored.y = -BALL_VELOCITY;
 
         offset = 0;
