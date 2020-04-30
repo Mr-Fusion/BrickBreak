@@ -28,7 +28,6 @@ Breakout TODO:
 	* Add "xSpeed" variable for game loop which will be added to paddle launch velocity based on speed pickups
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
-	* Incremental level loading
 	* Code Cleanup/Refactoring
 
 Known Bugs:

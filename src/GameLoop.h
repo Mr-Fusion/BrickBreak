@@ -215,8 +215,15 @@ class GameLoop : public GameState
         std::stringstream result;
 
         result.str( "" );
+        result << "round" << currentLev << ".csv";
+
         // Open an existing file
-        fin.open("testLvl.csv");
+        fin.open(result.str());
+
+        // Clear "result" in preparation for reading the file
+        result.clear();
+        result.str( "" );
+        
         while(!fin.eof()){
             fin>>line;
             result<<line<<" ";
@@ -231,17 +238,13 @@ class GameLoop : public GameState
         while (myString[i] != '\0'){
             if (myString[i] >= '0' && myString[i] <= '9'){
                 myChar = myString[i];
-                //printf("Read char: %c\n",myChar);
                 brickMap[j] = myChar - 48; 
-                //printf("Read int: %d\n",value);
                 j++;
             }
             i++;
         }
 
         printf("CSVRead Complete\n");
-        //myChar = myPointer+ 5;
-        //printf("Read char: %c\n",myChar);
     }
 
     //TODO: Can we streamline the sprite sheet creation into a function?
@@ -424,37 +427,8 @@ class GameLoop : public GameState
                 }
 
                 // Resolve outcome for the brick which was hit depending on its type
-                switch (wall[i]->getType()){
-                    case BRICK_GRAY:
-                        wall[i]->setType(BRICK_WHITE);
-                        break;
-                    case BRICK_DARK:
-                        wall[i]->setType(BRICK_GRAY);
-                        break;
-                    default:
-                        brickDim = wall[i]->getDim();
-                        delete wall[i];
-                        wall.erase(wall.begin()+i);
-                        score += 10;
-                        updateScoreText();
+                wallHit(i);
 
-                        // Roll for spawning a pickup from eliminated brick
-                        // If the roll is unsuccessful, increase the likelihood for next time
-                        if ( rand() % pickupRate >= 10){
-                            if (pickup == NULL){
-                                pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                                pickupRate = DEFAULT_LUCK;
-                            }
-                        }
-                        else
-                            pickupRate++;
-
-                        // If all bricks have been elimated, flag the level as completed
-                        if (wall.size() == 0){
-                            f_LevelComplete = true;
-                            delayTimer.start();
-                        }
-                }
             }
         }
 
@@ -491,6 +465,69 @@ class GameLoop : public GameState
         // Left edge of field
         if ( ( ballDim.x < 0 ) && ( ballVel.x < 0 ) ) {
             thisBall->hBounce();
+        }
+
+    }
+
+    void wallHit(int index){
+
+        SDL_Rect brickDim;
+
+        switch (wall[index]->getType()){
+            case BRICK_GRAY:
+                wall[index]->setType(BRICK_WHITE);
+                break;
+            case BRICK_DARK:
+                wall[index]->setType(BRICK_GRAY);
+                break;
+            default:
+                brickDim = wall[index]->getDim();
+                delete wall[index];
+                wall.erase(wall.begin()+index);
+                score += 10;
+                updateScoreText();
+
+                // Roll for spawning a pickup from eliminated brick
+                // If the roll is unsuccessful, increase the likelihood for next time
+                if ( rand() % pickupRate >= 10){
+                    if (pickup == NULL){
+                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                        pickupRate = DEFAULT_LUCK;
+                    }
+                }
+                else
+                    pickupRate++;
+
+                // If all bricks have been elimated, flag the level as completed
+                if (wall.size() == 0){
+                    f_LevelComplete = true;
+                    delayTimer.start();
+                }
+        }
+    }
+
+    void laserHandling(Bullet *laser){
+
+        //SDL_Rect brickDim;
+        laser->move();
+
+        for (int i = wall.size()-1; i >= 0 ; i--){
+            if (wall[i]->checkCollision(laser->getDim()) == true) {
+
+                // Resolve outcome for the brick which was hit depending on its type
+                wallHit(i);
+
+                if (!piercing)
+                    laser->setAlive( false );
+            }
+        }
+
+        if (laser->offScreen())
+            laser->setAlive( false );
+
+        if (laser->checkAlive() == false) {
+            delete laser;
+            laser = NULL;
         }
 
     }
@@ -585,115 +622,25 @@ class GameLoop : public GameState
                 }
             }
 
-            // TODO: Seems Redundant...
-            SDL_Rect    brickDim;
-
             if (laserA != NULL) {
-                laserA->move();
-
-                for (int i = wall.size()-1; i >= 0 ; i--){
-                    if (wall[i]->checkCollision(laserA->getDim()) == true) {
-                        // TODO: Create function for this routine
-                        // Resolve outcome for the brick which was hit depending on its type
-                        switch (wall[i]->getType()){
-                            case BRICK_GRAY:
-                                wall[i]->setType(BRICK_WHITE);
-                                break;
-                            case BRICK_DARK:
-                                wall[i]->setType(BRICK_GRAY);
-                                break;
-                            default:
-                                brickDim = wall[i]->getDim();
-                                delete wall[i];
-                                wall.erase(wall.begin()+i);
-                                score += 10;
-                                updateScoreText();
-
-                                // Roll for spawning a pickup from eliminated brick
-                                // If the roll is unsuccessful, increase the likelihood for next time
-                                if ( rand() % pickupRate >= 10){
-                                    if (pickup == NULL){
-                                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                                        pickupRate = DEFAULT_LUCK;
-                                    }
-                                }
-                                else
-                                    pickupRate++;
-
-                                // If all bricks have been elimated, flag the level as completed
-                                if (wall.size() == 0){
-                                    f_LevelComplete = true;
-                                    delayTimer.start();
-                                }
-                        }
-                        if (!piercing)
-                            laserA->setAlive( false );
-                    }
-                }
-
-                if (laserA->offScreen())
-                    laserA->setAlive( false );
-
+                laserHandling(laserA);
+/*
                 if (laserA->checkAlive() == false) {
                     delete laserA;
                     laserA = NULL;
                 }
+                */
             }
 
             if (laserB != NULL) {
-                laserB->move();
-
-                for (int i = wall.size()-1; i >= 0 ; i--){
-                    if (wall[i]->checkCollision(laserB->getDim()) == true) {
-                        // TODO: Create function for this routine
-                        // Resolve outcome for the brick which was hit depending on its type
-                        switch (wall[i]->getType()){
-                            case BRICK_GRAY:
-                                wall[i]->setType(BRICK_WHITE);
-                                break;
-                            case BRICK_DARK:
-                                wall[i]->setType(BRICK_GRAY);
-                                break;
-                            default:
-                                brickDim = wall[i]->getDim();
-                                delete wall[i];
-                                wall.erase(wall.begin()+i);
-                                score += 10;
-                                updateScoreText();
-
-                                // Roll for spawning a pickup from eliminated brick
-                                // If the roll is unsuccessful, increase the likelihood for next time
-                                if ( rand() % pickupRate >= 10){
-                                    if (pickup == NULL){
-                                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                                        pickupRate = DEFAULT_LUCK;
-                                    }
-                                }
-                                else
-                                    pickupRate++;
-
-                                // If all bricks have been elimated, flag the level as completed
-                                if (wall.size() == 0){
-                                    f_LevelComplete = true;
-                                    delayTimer.start();
-                                }
-                        }
-                        if (!piercing)
-                            laserB->setAlive( false );
-
-                    }
-                }
-
-                if (laserB->offScreen())
-                    laserB->setAlive( false );
-
+                laserHandling(laserB);
+/*
                 if (laserB->checkAlive() == false) {
                     delete laserB;
                     laserB = NULL;
                 }
+                */
             }
-
-
 
             // Create structure for ball dimensions
             SDL_Rect ballDim;
@@ -915,9 +862,6 @@ class GameLoop : public GameState
 
                         }
 
-                        
-                        
-                        
                         f_PickupDelete = true;
                     }
                 }
