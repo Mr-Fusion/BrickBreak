@@ -86,9 +86,7 @@ class GameLoop : public GameState
     SDL_Rect field;
     SDL_Rect scoreBoard;
     Paddle player;
-    //Ball ball;
     Pickup *pickup = NULL;
-
     Bullet *laserA = NULL;
     Bullet *laserB = NULL;
 
@@ -144,8 +142,6 @@ class GameLoop : public GameState
             resetBall(balls[i]);
         }
 
-        //resetBall();
-
         //Load media
         if( !loadMedia() )
         {
@@ -154,12 +150,17 @@ class GameLoop : public GameState
         else
         {
             //Initialize playing field dimensions, difficulty, and appearance
-            startGame();
+            lives = DEFAULT_LIVES;
+            score = 0;
+            pickupRate = DEFAULT_LUCK;
+            updateLivesText();
+            updateScoreText();
+            goNextLevel();
+            CSVread();
 
             //Initialize and display graphical interface
             SDL_SetWindowSize(gWindow,SCREEN_WIDTH,SCREEN_HEIGHT);
         }
-
     }
 
     ///Deconstructor
@@ -192,20 +193,14 @@ class GameLoop : public GameState
             delete balls[i];
         }
 
+        if (laserA != NULL)
+            delete laserA;
+
+        if (laserB != NULL)
+            delete laserB;
+
         wall.clear();
         balls.clear();
-    }
-
-    void startGame()
-    {
-        //Initialization goes here
-        lives = DEFAULT_LIVES;
-        score = 0;
-        pickupRate = DEFAULT_LUCK;
-        updateLivesText();
-        updateScoreText();
-        goNextLevel();
-        CSVread();
     }
 
     void CSVread()
@@ -301,6 +296,22 @@ class GameLoop : public GameState
         return success;
     }
 
+    // Need to test in order to replace following 3 functions
+    // EX: scoreTextTexture.loadFromRenderedText(updateText("Score: ", score), textColor);
+    // EX: livesTextTexture.loadFromRenderedText(updateText("Lives: ", lives), textColor);
+    // EX: lvlTextTexture.loadFromRenderedText(updateText("Round: ", currentLev), textColor);
+    std::string updateText(std::string text, int num = -1){
+        std::stringstream result;
+
+        result.str("");
+        result << text;
+
+        if (num != -1)
+            result << num;
+
+        return result.str();
+    }
+
     void updateLvlText(int num){
         //Set text to be rendered
         lvlText.str( "" );
@@ -342,11 +353,6 @@ class GameLoop : public GameState
 
         balls.push_back(new Ball());
         resetBall(balls[0]);
-
-        initLevel();
-    }
-
-    void initLevel() {
 
         CSVread();
 
@@ -525,11 +531,6 @@ class GameLoop : public GameState
         if (laser->offScreen())
             laser->setAlive( false );
 
-        if (laser->checkAlive() == false) {
-            delete laser;
-            laser = NULL;
-        }
-
     }
 
     ///Handles Player input
@@ -624,22 +625,20 @@ class GameLoop : public GameState
 
             if (laserA != NULL) {
                 laserHandling(laserA);
-/*
+
                 if (laserA->checkAlive() == false) {
                     delete laserA;
                     laserA = NULL;
                 }
-                */
             }
 
             if (laserB != NULL) {
                 laserHandling(laserB);
-/*
+
                 if (laserB->checkAlive() == false) {
                     delete laserB;
                     laserB = NULL;
                 }
-                */
             }
 
             // Create structure for ball dimensions
@@ -824,6 +823,7 @@ class GameLoop : public GameState
                             case PICKUP_FAST:
                                 for (int i = balls.size() - 1; i >= 0 ; i--){
                                     tempVel = balls[i]->getVel();
+
                                     if ( tempVel.x > 1)
                                         tempVel.x++;
                                     else if ( tempVel.x < -1)
@@ -841,6 +841,7 @@ class GameLoop : public GameState
                             case PICKUP_SLOW:
                                 for (int i = balls.size() - 1; i >= 0 ; i--){
                                     tempVel = balls[i]->getVel();
+
                                     if ( tempVel.x > 1)
                                         tempVel.x--;
                                     else if ( tempVel.x < -1)
@@ -911,28 +912,22 @@ class GameLoop : public GameState
         SDL_SetRenderDrawColor( gRenderer, spR, spG, spB, 0xFF );
         player.render();
 
-        for (int i = 0; i < balls.size(); i++){
+        for (int i = 0; i < balls.size(); i++)
             balls[i]->render();
-        }
 
-        for (int i = 0; i < wall.size(); i++){
+        for (int i = 0; i < wall.size(); i++)
             wall[i]->render();
-        }
 
-        if ( laserA != NULL){
+        if ( laserA != NULL)
             laserA->render();
-        }
 
-        if ( laserB != NULL){
+        if ( laserB != NULL)
             laserB->render();
-        }
 
         if (pickup != NULL){
             SDL_SetRenderDrawColor( gRenderer, pickup->r, pickup->g, pickup->b, 0xFF );
             pickup->render();
         }
-
-
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
