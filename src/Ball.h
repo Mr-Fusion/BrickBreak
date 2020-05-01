@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <stdlib.h>
+#include "GameEntity.h"
 #include "Const.h"
 #include "LTimer.h"
 #include "LTexture.h"
@@ -10,12 +11,11 @@
 #define BALL_SIZE		    8
 #define BALL_VELOCITY		6
 
-class Ball
+class Ball : public GameEntity
 {
     public:
 
-    	SDL_Rect dim;
-        SDL_Point vel, velStored;
+        SDL_Point velStored;
         bool stuck;
         int offset;
 
@@ -48,25 +48,6 @@ class Ball
     ///Deconstructor
     ~Ball(){
         printf("Ball Object Deconstructing...\n");
-
-
-    }
-
-    bool checkCollision( SDL_Rect foreignObj){
-        if (dim.y >= ( foreignObj.y + foreignObj.h ) )
-            return false;
-
-        if (dim.y + dim.h <= foreignObj.y)
-            return false;
-                
-        if (dim.x + dim.w <= foreignObj.x)
-            return false;
-                    
-        if (dim.x >= foreignObj.x + foreignObj.w)
-            return false;
-
-        return true;
-
     }
 
     bool checkCollN(SDL_Rect foreignObj){
@@ -122,14 +103,6 @@ class Ball
         return offset;
     }
 
-    SDL_Rect getDim() {
-        return dim;
-    }
-
-    SDL_Point getVel() {
-        return vel;
-    }
-
     void setPos(int x, int y){
         dim.x = x;
         dim.y = y;
@@ -143,11 +116,6 @@ class Ball
         vel.y *= -1;
     }
 
-    void setVel(int x, int y){
-        vel.x = x;
-        vel.y = y;
-    }
-
     void storeVel(int x, int y){
         velStored.x = x;
         velStored.y = y;
@@ -159,16 +127,6 @@ class Ball
 
     void releaseVel() {
         vel = velStored;
-    }
-
-    void update(){
-        dim.x += vel.x;
-        dim.y += vel.y;
-    }
-
-    void render(){
-
-    	SDL_RenderFillRect(gRenderer, &dim);
     }
 
 };

@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <stdlib.h>
+#include "GameEntity.h"
 #include "Const.h"
 #include "LTimer.h"
 #include "LTexture.h"
@@ -56,67 +57,40 @@ bool loadBrickTextures(){
     return success;
 }
 
-class Brick
+class Brick : public GameEntity
 {
     public:
-
-    	SDL_Rect dim;
-        int color;
+        int type;
 
     ///Constructor Function
-    Brick(int x, int y, int c = 0){
+    Brick(int x, int y, int t = 0){
 
     	dim.h = BRICK_HEIGHT;
     	dim.w = BRICK_WIDTH;
     	dim.x = x;
     	dim.y = y;
-        color = c;
-        if (color >= BRICK_TYPE )
-            color = 0;
+        type = t;
+        if (type >= BRICK_TYPE )
+            type = 0;
 
         loadBrickTextures();
     }
 
     ///Deconstructor
     ~Brick(){
-        printf("Gamestate Object Deconstructing...\n");
-
-
-    }
-
-    bool checkCollision( SDL_Rect foreignObj){
-        if (dim.y >= ( foreignObj.y + foreignObj.h ) )
-            return false;
-
-        if (dim.y + dim.h <= foreignObj.y)
-            return false;
-                
-        if (dim.x + dim.w <= foreignObj.x)
-            return false;
-                    
-        if (dim.x >= foreignObj.x + foreignObj.w)
-            return false;
-
-        return true;
-
+        printf("Brick Object Deconstructing...\n");
     }
 
     int getType(){
-        return color;
+        return type;
     }
 
-    void setType(int c){
-        color = c;
-    }
-
-    SDL_Rect getDim() {
-        return dim;
+    void setType(int t){
+        type = t;
     }
 
     void render(){
-
-    	//SDL_RenderFillRect(gRenderer, &dim);
-        brickSheet.render(dim.x, dim.y, &brickClips[color]);
+        brickSheet.render(dim.x, dim.y, &brickClips[type]);
     }
 
 };

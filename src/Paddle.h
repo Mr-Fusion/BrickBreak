@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <stdlib.h>
+#include "GameEntity.h"
 #include "Const.h"
 #include "LTimer.h"
 #include "LTexture.h"
@@ -15,11 +16,9 @@
 
 #define PADDLE_HIT_DIVIDER  10
 
-class Paddle
+class Paddle : public GameEntity
 {
     public:
-
-    	SDL_Rect dim;
 
     ///Constructor Function
     Paddle(){
@@ -32,34 +31,7 @@ class Paddle
 
     ///Deconstructor
     ~Paddle(){
-        printf("Gamestate Object Deconstructing...\n");
-
-
-    }
-
-    bool checkCollision( SDL_Rect foreignObj){
-        if (dim.y >= ( foreignObj.y + foreignObj.h ) )
-            return false;
-
-        if (dim.y + dim.h <= foreignObj.y)
-            return false;
-                
-        if (dim.x + dim.w <= foreignObj.x)
-            return false;
-                    
-        if (dim.x >= foreignObj.x + foreignObj.w)
-            return false;
-
-        return true;
-
-    }
-
-    SDL_Rect getDim() {
-        return dim;
-    }
-
-    void setDim(SDL_Rect d) {
-        dim = d;
+        printf("Paddle Object Deconstructing...\n");
     }
 
     void moveLeft(){
@@ -72,10 +44,6 @@ class Paddle
         dim.x += PADDLE_VELOCITY;
         if (dim.x > SCREEN_WIDTH - dim.w)
             dim.x = SCREEN_WIDTH - dim.w;
-    }
-
-    void render(){
-        SDL_RenderFillRect(gRenderer, &dim);
     }
 
 };

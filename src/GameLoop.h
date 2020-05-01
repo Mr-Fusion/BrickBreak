@@ -11,6 +11,7 @@
 #include <vector>
 #include "Const.h"
 #include "GameState.h"
+#include "GameEntity.h"
 #include "LTimer.h"
 #include "LTexture.h"
 #include "Paddle.h"
@@ -651,7 +652,7 @@ class GameLoop : public GameState
 
                 // Ball Logic
                 if (!f_LevelComplete){
-                     balls[i]->update();
+                     balls[i]->move();
                 }
 
                 // Register ball dimensions
@@ -734,7 +735,7 @@ class GameLoop : public GameState
             if (pickup != NULL){
 
                 bool f_PickupDelete = false;
-                pickup->update();
+                pickup->move();
                 SDL_Rect pickupDim = pickup->getDim();
                 SDL_Point tempVel;
 

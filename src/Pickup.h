@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 #include <stdlib.h>
+#include "GameEntity.h"
 #include "Const.h"
 #include "LTimer.h"
 #include "LTexture.h"
@@ -24,12 +25,10 @@ enum {
     PICKUP_TYPE     = 10
 };
 
-class Pickup
+class Pickup : public GameEntity
 {
     public:
 
-    	SDL_Rect dim;
-        SDL_Point vel;
         int type;
         int r, g, b;
 
@@ -54,8 +53,6 @@ class Pickup
     ///Deconstructor
     ~Pickup(){
         printf("Pickup Object Deconstructing...\n");
-
-
     }
 
     void setRandomType(){
@@ -119,49 +116,9 @@ class Pickup
         }
     }
 
-    bool checkCollision( SDL_Rect foreignObj){
-        if (dim.y >= ( foreignObj.y + foreignObj.h ) )
-            return false;
-
-        if (dim.y + dim.h <= foreignObj.y)
-            return false;
-                
-        if (dim.x + dim.w <= foreignObj.x)
-            return false;
-                    
-        if (dim.x >= foreignObj.x + foreignObj.w)
-            return false;
-
-        return true;
-
-    }
-
-    SDL_Rect getDim() {
-        return dim;
-    }
-
-    SDL_Point getVel() {
-        return vel;
-    }
-
     void setPos(int x, int y){
         dim.x = x;
         dim.y = y;
-    }
-
-    void setVel(int x, int y){
-        vel.x = x;
-        vel.y = y;
-    }
-
-    void update(){
-        dim.x += vel.x;
-        dim.y += vel.y;
-    }
-
-    void render(){
-
-    	SDL_RenderFillRect(gRenderer, &dim);
     }
 
 };
