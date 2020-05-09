@@ -16,13 +16,19 @@ class GameEntity
     ///Deconstructor
     virtual ~GameEntity(){}
 
-    // Functions to Set/Get entity dimensions (x,y,w,h)
+    // Set/Get entity dimensions (x,y,w,h)
     void setDim(SDL_Rect d) { dim = d; }
     SDL_Rect getDim() { return dim; }
 
-    // Functions to Set/Get entity velocity (x,y)
+    // Set/Get entity velocity (x,y)
     void setVel(int x, int y){ vel.x = x; vel.y = y; }
     SDL_Point getVel() { return vel; }
+
+    // Set entity position
+    void setPos(int x, int y){
+        dim.x = x;
+        dim.y = y;
+    }
 
     // Update location coordiates based on current velocity
     void move(){

@@ -11,6 +11,19 @@
 #define PICKUP_SIZE		    16
 #define PICKUP_VELOCITY		4
 
+#define WEIGHT_CATCH    10
+#define WEIGHT_MULTI    15
+#define WEIGHT_PIERCE   5
+#define WEIGHT_SHOOT    10
+
+#define WEIGHT_GROW     10
+#define WEIGHT_SHRINK   10
+#define WEIGHT_FAST     10
+#define WEIGHT_SLOW     10
+
+#define WEIGHT_LIFE     1
+
+
 enum {
     PICKUP_POINT    = 0,    //White
     PICKUP_CATCH    = 1,    //Cyan
@@ -65,60 +78,43 @@ class Pickup : public GameEntity
             break;
             case PICKUP_CATCH:
                 // CYAN
-                r = 0x37;
-                g = b = 0xFF;
+                r = 0x37; g = 0xFF; b = 0xFF;
             break;
             case PICKUP_MULTI:
                 // MAGENTA
-                g = 0x37;
-                r = b = 0xFF;
+                r = 0xFF; g = 0x37; b = 0xFF;
             break;
             case PICKUP_PIERCE:
                 // PURPLE
-                r = 0x9B;
-                g = 0x37;
-                b = 0xFF;
+                r = 0x9B; g = 0x37; b = 0xFF;
             break;
             case PICKUP_SHOOT:
                 //ORANGE
-                r = 0xFF;
-                g = 0x9B;
-                b = 0x37;
+                r = 0xFF; g = 0x9B; b = 0x37;
             break;
             case PICKUP_GROW:
                 // BLUE
-                b = 0xFF;
-                r = g = 0x37;
+                r = 0x37; g = 0x37; b = 0xFF; 
             break;
             case PICKUP_SHRINK:
                 // RED
-                r = 0xFF;
-                g = b = 0x37;
+                r = 0xFF; g = 0x37; b = 0x37;
             break;
             case PICKUP_FAST:
                 // GREEN
-                g = 0xFF;
-                r = b = 0x37;
+                r =  0x37; g = 0xFF; b = 0x37;
             break;
             case PICKUP_SLOW:
                 // YELLOW
-                b = 0x37;
-                r = g = 0xFF;
+                r = 0xFF; b = 0x37; g = 0xFF;
             break;
             case PICKUP_LIFE:
                 // BROWN... for now
-                r = 0xA0;
-                g = 0x63;
-                b = 0x00;
+                r = 0xA0; g = 0x63; b = 0x00;
             break;
             default:
                 r = g = b = 0xFF;
         }
-    }
-
-    void setPos(int x, int y){
-        dim.x = x;
-        dim.y = y;
     }
 
 };

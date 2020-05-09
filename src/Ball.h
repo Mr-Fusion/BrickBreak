@@ -103,11 +103,6 @@ class Ball : public GameEntity
         return offset;
     }
 
-    void setPos(int x, int y){
-        dim.x = x;
-        dim.y = y;
-    }
-
     void hBounce(){
         vel.x *= -1;
     }
