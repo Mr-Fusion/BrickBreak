@@ -18,7 +18,6 @@ Breakout TODO:
 		~ Different color/texture
 	* How to determine which powerups are active
 	* Paddle Size should reset between rounds?
-	* Weighted Drop Rates
 - Special effects?
 	* Ball Trail
 	* Bounce effects

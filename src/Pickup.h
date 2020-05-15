@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <stdlib.h>
 #include "GameEntity.h"
+#include "WeightedTable.h"
 #include "Const.h"
 #include "LTimer.h"
 #include "LTexture.h"
@@ -11,18 +12,12 @@
 #define PICKUP_SIZE		    16
 #define PICKUP_VELOCITY		4
 
-#define WEIGHT_CATCH    10
-#define WEIGHT_MULTI    15
-#define WEIGHT_PIERCE   5
-#define WEIGHT_SHOOT    10
+#define WEIGHT_DEFAULT   10
 
-#define WEIGHT_GROW     10
-#define WEIGHT_SHRINK   10
-#define WEIGHT_FAST     10
-#define WEIGHT_SLOW     10
-
-#define WEIGHT_LIFE     1
-
+#define WEIGHT_MULTI     15
+#define WEIGHT_PIERCE    5
+#define WEIGHT_POINT     18
+#define WEIGHT_LIFE      2
 
 enum {
     PICKUP_POINT    = 0,    //White
@@ -35,7 +30,7 @@ enum {
     PICKUP_FAST     = 7,    //Green
     PICKUP_SLOW     = 8,    //Yellow
     PICKUP_LIFE     = 9,    //..Multicolor?
-    PICKUP_TYPE     = 10
+    PICKUP_NUM      = 10
 };
 
 class Pickup : public GameEntity
@@ -44,6 +39,7 @@ class Pickup : public GameEntity
 
         int type;
         int r, g, b;
+        WeightedTable *bonusTable = NULL;
 
     ///Constructor Function
     Pickup(int x,int y){
@@ -60,17 +56,30 @@ class Pickup : public GameEntity
 
         r = g = b = 0xFF;
 
+        bonusTable = new WeightedTable(PICKUP_NUM, WEIGHT_DEFAULT);
+
+        bonusTable->setWeight(PICKUP_MULTI, WEIGHT_MULTI);
+        bonusTable->setWeight(PICKUP_PIERCE, WEIGHT_PIERCE);
+        bonusTable->setWeight(PICKUP_POINT, WEIGHT_POINT);
+        bonusTable->setWeight(PICKUP_LIFE, WEIGHT_LIFE);
+
+        bonusTable->print();
+
         setRandomType();
     }
 
     ///Deconstructor
     ~Pickup(){
         printf("Pickup Object Deconstructing...\n");
+
+        if (bonusTable != NULL)
+            delete bonusTable;
     }
 
     void setRandomType(){
 
-        type = ( rand() % PICKUP_TYPE);
+        //type = ( rand() % W_TOTAL);
+        type = bonusTable->roll();
 
         switch (type) {
             case PICKUP_POINT:
