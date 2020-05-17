@@ -15,22 +15,21 @@ Breakout TODO:
 
 - Powerups:
 	* Identification between powerups
-		~ Different color/texture
-	* How to determine which powerups are active
-	* Paddle Size should reset between rounds?
+		~ Different texture/Icons (For colorblind players)
+	* Multiball trajectory
 - Special effects?
-	* Ball Trail
-	* Bounce effects
-	* Special Brick hits
+	* Sound Effects
+	* particles/animations?
 - General Balancing
 	* What should be the min/max ball speed
 	* Add "xSpeed" variable for game loop which will be added to paddle launch velocity based on speed pickups
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
+	* What happens when all levels are cleared?
+	* Pause Feature
 
 Known Bugs:
 
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated
 	* Potentially need to take load off gRenderer somehow
-- Sometimes Quickly exiting and restarting the game can cause the gameloop to skip directly to level 2

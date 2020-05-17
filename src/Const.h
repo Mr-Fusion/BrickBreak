@@ -15,8 +15,8 @@ extern TTF_Font *gFont = NULL;
 #define TITLE				"BrickBreak"
 
 #define MAJOR_REV           0
-#define MINOR_REV           1
-#define INCREMENTAL_REV     9
+#define MINOR_REV           2
+#define INCREMENTAL_REV     0
 
 //Screen dimension constants
 #define SCREEN_WIDTH        528//640

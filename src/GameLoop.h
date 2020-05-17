@@ -29,48 +29,57 @@
 #define XVEL_MIN            1
 #define XVEL_MAX            8
 
+#define SCORE_LIFEUP        5000
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
+
+#define DELAY_TIME          2400
 
 class GameLoop : public GameState
 {
     public:
 
     // Gameplay Stats/Values
-    int currentLev;
-    int lives;
-    int score;
+    int currentLev = 0;
+    int lives = 0;
+    int score = 0;
 
     // Gameplay Event Flags
-    bool f_LevelBegin;
-    bool f_ShowLvl;
-    bool f_GameOver;
-    bool f_LevelComplete;
+    bool f_ShowInfo = false;
+    bool f_InfoFade = false;
+    bool f_GameOver = false;
+    bool f_LevelComplete = false;
+
+    // PowerUp status flags
+    bool stuck, piercing, catching, lasers;
 
     // Player Input Control Flags
     bool lInput,rInput,uInput,dInput,spInput;
 
-    SDL_Color textColor;
-
     // Background color
-    int bgR, bgG, bgB;
+    int bgR = 0x00; int bgG = 0x00; int bgB = 0x00;
 
     // Scoreboard color
-    int scR, scG, scB;
+    int scR = 0x3F; int scG = 0x3F; int scB = 0x3F;
 
     // Sprite color
-    int spR, spG, spB;
+    int spR = 0xFF; int spG = 0xFF; int spB = 0xFF;
+
+    // Info Text Color
+    int inR = 0xFF; int inG = 0xFF; int inB = 0xFF;
+
+    // Temporary Color
+    int tmpR, tmpG, tmpB;
+
+    SDL_Color textColor = { spR, spG, spB, 0xFF};
 
     // In memory text stream
     std::stringstream msgText;
-    std::stringstream lvlText;
-    std::stringstream livesText;
-    std::stringstream scoreText;
 
     // Scene textures
     LTexture livesTextTexture;
-    LTexture lvlTextTexture;
+    LTexture infoTextTexture;
     LTexture scoreTextTexture;
 
     // Timers for flag handling
@@ -96,27 +105,15 @@ class GameLoop : public GameState
 
     // Temp variables
     int offsetPB;
-    bool stickyP, stuck, piercing, catching, lasers;
-    int hitSpeed;
-    int pickupRate;
+
+    int pickupRate = 0;
     int brickMap[NUM_BRICKS];
     SDL_Rect tempDim;
 
     ///Constructor Function
     GameLoop(){
-
-        currentLev = 0;
-
-        f_ShowLvl = false;
-        f_GameOver = false;
-
-        bgR = bgG = bgB = 0x00;
-
-        scR = scG = scB = 0x0F;
-
-        spR = spG = spB = 0xFF;
-
-        textColor = { spR, spG, spB, 0xFF};
+        lInput = rInput = uInput = dInput = spInput = false;
+        stuck = piercing = catching = lasers = false;
 
         field.x = 0;
         field.y = SCOREBOARD_HEIGHT;
@@ -127,12 +124,6 @@ class GameLoop : public GameState
         scoreBoard.y = 0;
         scoreBoard.w = SCOREBOARD_WIDTH;
         scoreBoard.h = SCOREBOARD_HEIGHT;
-
-        lInput = rInput = uInput = dInput = false;
-
-        lives = 0;
-        score = 0;
-        pickupRate = 0;
 
         for (int i = 0; i < NUM_BRICKS; i++)
             brickMap[i] = 0;
@@ -154,10 +145,9 @@ class GameLoop : public GameState
             lives = DEFAULT_LIVES;
             score = 0;
             pickupRate = DEFAULT_LUCK;
-            updateLivesText();
-            updateScoreText();
+            livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+            scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
             goNextLevel();
-            CSVread();
 
             //Initialize and display graphical interface
             SDL_SetWindowSize(gWindow,SCREEN_WIDTH,SCREEN_HEIGHT);
@@ -167,6 +157,7 @@ class GameLoop : public GameState
     ///Deconstructor
     ~GameLoop(){
         printf("Gamestate Object Deconstructing...\n");
+        delayTimer.stop();
 
         //Free the sound effects
         Mix_FreeChunk( playerShot );
@@ -182,7 +173,7 @@ class GameLoop : public GameState
 
         //Free loaded image
         livesTextTexture.free();
-        lvlTextTexture.free();
+        infoTextTexture.free();
         scoreTextTexture.free();
 
         //delete all pointers in the wall vector and clear all elements
@@ -204,14 +195,14 @@ class GameLoop : public GameState
         balls.clear();
     }
 
-    void CSVread()
+    void CSVread(int level)
     {
         std::ifstream fin;
         std::string line;
         std::stringstream result;
 
         result.str( "" );
-        result << "round" << currentLev << ".csv";
+        result << "round" << level << ".csv";
 
         // Open an existing file
         fin.open(result.str());
@@ -285,22 +276,14 @@ class GameLoop : public GameState
             success = false;
         }
 
-        //Set text to be rendered
-        msgText.str( " " );
-        livesText.str( " " );
-
         //Render text
-        livesTextTexture.setText(livesText.str().c_str(), textColor);
+        livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
 
-        lvlTextTexture.setText(msgText.str().c_str(), textColor);
+        infoTextTexture.loadFromRenderedText( updateText("Round: ", currentLev), textColor);
 
         return success;
     }
 
-    // Need to test in order to replace following 3 functions
-    // EX: scoreTextTexture.loadFromRenderedText(updateText("Score: ", score), textColor);
-    // EX: livesTextTexture.loadFromRenderedText(updateText("Lives: ", lives), textColor);
-    // EX: lvlTextTexture.loadFromRenderedText(updateText("Round: ", currentLev), textColor);
     std::string updateText(std::string text, int num = -1){
         std::stringstream result;
 
@@ -313,49 +296,27 @@ class GameLoop : public GameState
         return result.str();
     }
 
-    void updateLvlText(int num){
-        //Set text to be rendered
-        lvlText.str( "" );
-        lvlText << "Round: " << num;
-
-        //Render text
-        lvlTextTexture.setText(lvlText.str().c_str(), textColor);
-
-    }
-
-    void updateLivesText() {
-        //Set text to be rendered
-        livesText.str( "" );
-        livesText << "Lives: " << lives;
-
-        //Render text
-        livesTextTexture.setText(livesText.str().c_str(), textColor);
-    }
-
-    void updateScoreText() {
-        //Set text to be rendered
-        scoreText.str( "" );
-        scoreText << "Score: " << score;
-
-        //Render text
-        std::string scoreString = scoreText.str();
-        scoreTextTexture.setText(scoreString.c_str(), textColor);
-    }
-
     void goNextLevel(){
 
-        // Prepare for next level here
-        currentLev++;
+        // Increment and load next level
+        CSVread(++currentLev);
 
+        // Reset Paddle Width
+        SDL_Rect tempDim = player.getDim();
+        tempDim.w = PADDLE_WIDTH;
+        player.setDim(tempDim);
+
+        // Clear all balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
             delete balls[i];
             balls.erase(balls.begin()+i);
         }
 
+        // Serve new ball
         balls.push_back(new Ball());
         resetBall(balls[0]);
 
-        CSVread();
+
 
         int k = 0;
         for (int j = 0; j < NUM_ROWS; j++){
@@ -367,17 +328,17 @@ class GameLoop : public GameState
         }
 
         // Update level string and display text on screen
-        updateLvlText(currentLev);
-        f_ShowLvl = true;
+        infoTextTexture.loadFromRenderedText( updateText("Round: ", currentLev), textColor);
+        inR = inG = inB = 0xFF;
+        f_ShowInfo = true;
 
         // Set countdown to hide level text some time after level begins
         delayTimer.start();
-        f_LevelBegin = true;
 
     }
 
     void resetBall(Ball *thisBall){
-        stickyP = true;
+
         thisBall->setStuck(true);
         //TODO: Revisit "Sticky" Functions
         tempDim = player.getDim();
@@ -491,15 +452,14 @@ class GameLoop : public GameState
                 brickDim = wall[index]->getDim();
                 delete wall[index];
                 wall.erase(wall.begin()+index);
-                score += 10;
-                updateScoreText();
+                addPoints(10);
 
                 // Roll for spawning a pickup from eliminated brick
                 // If the roll is unsuccessful, increase the likelihood for next time
-                if ( rand() % pickupRate >= 10){
+                if ( ( rand() % pickupRate ) >= 10){
                     if (pickup == NULL){
                         pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                        pickupRate = DEFAULT_LUCK;
+                        pickupRate = (rand() % DEFAULT_LUCK) + 1;
                     }
                 }
                 else
@@ -515,11 +475,12 @@ class GameLoop : public GameState
 
     void laserHandling(Bullet *laser){
 
-        //SDL_Rect brickDim;
         laser->move();
 
+        SDL_Rect laserDim = laser->getDim();
+
         for (int i = wall.size()-1; i >= 0 ; i--){
-            if (wall[i]->checkCollision(laser->getDim()) == true) {
+            if (wall[i]->checkCollision(laserDim) == true) {
 
                 // Resolve outcome for the brick which was hit depending on its type
                 wallHit(i);
@@ -529,9 +490,23 @@ class GameLoop : public GameState
             }
         }
 
-        if (laser->offScreen())
+        if (laserDim.y < SCOREBOARD_HEIGHT)
             laser->setAlive( false );
 
+    }
+
+    void addPoints(int p){
+        int tempScore = score;
+        score += p;
+
+        // If score increments past SCORE_LIFEUP threshold, add an extra live
+        if ( (score / SCORE_LIFEUP) > (tempScore / SCORE_LIFEUP) ){
+            lives++;
+            livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+        }
+
+        // Update Score Display texture
+        scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
     }
 
     ///Handles Player input
@@ -659,14 +634,15 @@ class GameLoop : public GameState
                 ballDim = balls[i]->getDim();
 
                 // Handle collision between ball and paddle
+
                 if (player.checkCollision(ballDim) && balls[i]->getVel().y > 0){
                     // TODO: Can offsetPB be moved?
                     /*offsetPB = */balls[i]->setOffset(ballDim.x - playerDim.x);
 
-                    hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
+                    int hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                     // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
-                    if (stickyP || catching){
+                    if (catching){
 
                         if ( hitSpeed> 0)
                             balls[i]->storeVel( ( hitSpeed + (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
@@ -701,11 +677,9 @@ class GameLoop : public GameState
                     // Release the ball if space input is asserted.
                     // Trajectory is calculated in a similar manner as a regular paddle collision
                     if (spInput){
-
                         // TODO: condense these lines to a "LaunchBall" function
                         balls[i]->releaseVel();
                         balls[i]->setStuck(false);
-                        stickyP = false;
                     }
                 }
 
@@ -718,9 +692,10 @@ class GameLoop : public GameState
                     if (balls.size() == 0){
 
                         lives--;
-                        updateLivesText();
+                        livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
 
                         if (lives == 0){
+                            infoTextTexture.loadFromRenderedText( updateText("Game Over"), textColor);
                             f_GameOver = true;
                         }
                         else {
@@ -745,14 +720,17 @@ class GameLoop : public GameState
 
                         switch (pickup->type){
                             case PICKUP_POINT:
-                                score += 100;
-                                updateScoreText();
+                                addPoints(100);
+
+                                infoTextTexture.loadFromRenderedText( updateText("Bonus Points"), textColor);
                             break;
 
                             // TODO: Fix catch handling for multiple balls
                             case PICKUP_CATCH:
                                 catching = true;
                                 lasers = false;
+
+                                infoTextTexture.loadFromRenderedText( updateText("Sticky Paddle"), textColor);
                             break;
 
                             case PICKUP_MULTI:
@@ -776,17 +754,22 @@ class GameLoop : public GameState
                                         tempVel.y -= 2;
                                         balls[j]->storeVel(tempVel.x, tempVel.y);
                                     }
-
                                 }
+
+                                infoTextTexture.loadFromRenderedText( updateText("Multiball"), textColor);
                             break;
 
                             case PICKUP_PIERCE:
                                 piercing = true;
+
+                                infoTextTexture.loadFromRenderedText( updateText("Piercing"), textColor);
                             break;
 
                             case PICKUP_SHOOT:
                                 lasers = true;
                                 catching = false;
+
+                                infoTextTexture.loadFromRenderedText( updateText("Lasers"), textColor);
                             break;
 
                             case PICKUP_GROW: // TODO: Interactions with sticky
@@ -803,6 +786,7 @@ class GameLoop : public GameState
                                     player.setDim(playerDim);
                                 }
 
+                                infoTextTexture.loadFromRenderedText( updateText("Paddle Grow"), textColor);
                             break;
 
                             case PICKUP_SHRINK: // TODO: Interactions with sticky
@@ -819,6 +803,7 @@ class GameLoop : public GameState
                                     player.setDim(playerDim);
                                 }
 
+                                infoTextTexture.loadFromRenderedText( updateText("Paddle Shrink"), textColor);
                             break;
 
                             case PICKUP_FAST:
@@ -837,6 +822,7 @@ class GameLoop : public GameState
 
                                     balls[i]->setVel(tempVel.x, tempVel.y);
                                 }
+                                infoTextTexture.loadFromRenderedText( updateText("Ball Speed Up"), textColor);
                             break;
 
                             case PICKUP_SLOW:
@@ -855,15 +841,22 @@ class GameLoop : public GameState
 
                                     balls[i]->setVel(tempVel.x, tempVel.y);
                                 }
+                                infoTextTexture.loadFromRenderedText( updateText("Ball Speed Down"), textColor);
                             break;
 
                             case PICKUP_LIFE:
                                 lives++;
-                                updateLivesText();
+                                livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+
+                                infoTextTexture.loadFromRenderedText( updateText("Extra Life"), textColor);
                             break;
 
                         }
 
+                        inR = pickup->r; inG = pickup->g; inB = pickup->b;
+                        delayTimer.start();
+                        f_ShowInfo = true;
+                        f_InfoFade = true;
                         f_PickupDelete = true;
                     }
                 }
@@ -880,11 +873,22 @@ class GameLoop : public GameState
 
         //--- Gamestate flags ---//
 
-        if (f_LevelBegin){
-            if (delayTimer.getTicks() > 3000){
+        if (f_ShowInfo){
+
+            if (f_InfoFade) {
+                tmpR = inR - (inR * delayTimer.getTicks() / DELAY_TIME);
+                tmpB = inB - (inB * delayTimer.getTicks() / DELAY_TIME);
+                tmpG = inG - (inG * delayTimer.getTicks() / DELAY_TIME);
+            }
+            else {
+                tmpR = inR;
+                tmpB = inB;
+                tmpG = inG;
+            }
+
+            if (delayTimer.getTicks() > DELAY_TIME){
                 delayTimer.stop();
-                f_ShowLvl = false;
-                f_LevelBegin = false;
+                f_ShowInfo = false;
             }
         }
 
@@ -938,9 +942,14 @@ class GameLoop : public GameState
         livesTextTexture.setColor(spR, spG, spB);
         livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );
 
-        if (f_ShowLvl) {
-            lvlTextTexture.setColor(spR, spG, spB);
-            lvlTextTexture.render(SCREEN_WIDTH/2 - lvlTextTexture.getWidth()/2, SCREEN_HEIGHT - lvlTextTexture.getHeight() * 2 );
+        if (f_ShowInfo) {
+            infoTextTexture.setColor(tmpR, tmpG, tmpB);
+            infoTextTexture.render(SCREEN_WIDTH/2 - infoTextTexture.getWidth()/2, SCREEN_HEIGHT - infoTextTexture.getHeight() * 2 );
+        }
+
+        if (f_GameOver) {
+            infoTextTexture.setColor(spR, spG, spB);
+            infoTextTexture.render(SCREEN_WIDTH/2 - infoTextTexture.getWidth()/2, SCREEN_HEIGHT - infoTextTexture.getHeight() * 2 );
         }
 
     }
