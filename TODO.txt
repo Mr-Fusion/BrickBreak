@@ -3,11 +3,8 @@ Game Engine TODO:
 - Streamline LoadMedia Functions for various gamestates
 	* Centralized Class for sound/Texture files?
 	* Load assets on an entity basis?
-- Streamline "updateText" functions
-	* Is Stringstream necessary? Are there alternatives?
 - Implement levels as sub-loops
 	* Need to define loop structure
-- Add pause/menu to GameLoop
 - Improve font handling
 	*gFont may not be deallocating properly
 
@@ -16,20 +13,17 @@ Breakout TODO:
 - Powerups:
 	* Identification between powerups
 		~ Different texture/Icons (For colorblind players)
-	* Multiball trajectory
 - Special effects?
 	* Sound Effects
 	* particles/animations?
 - General Balancing
-	* What should be the min/max ball speed
-	* Add "xSpeed" variable for game loop which will be added to paddle launch velocity based on speed pickups
+	* What should be the min/max ball speed [Need to playtest]
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
 	* What happens when all levels are cleared?
-	* Pause Feature
 
 Known Bugs:
-
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated
 	* Potentially need to take load off gRenderer somehow
+- In rare instances, the "Paused" info text does not appear when the game is paused

@@ -26,10 +26,17 @@
 #define NUM_BRICKS          NUM_ROWS * NUM_COLS
 #define DEFAULT_LUCK        8
 
+#define PADDLE_WIDTH_MOD    20
+#define PADDLE_HIT_DIVIDER  10
+
+#define SPEED_INDEX_MAX     4
+#define SPEED_INDEX_MIN     -2
+
 #define XVEL_MIN            1
 #define XVEL_MAX            8
 
 #define SCORE_LIFEUP        5000
+#define HIT_SPEEDUP         15
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -44,12 +51,17 @@ class GameLoop : public GameState
     int currentLev = 0;
     int lives = 0;
     int score = 0;
+    int hitCount = 0;
+    int paddleHitDiv = 10;
+    int yLaunchVel = BALL_VELOCITY;
+    int speedIndex = 0;
 
     // Gameplay Event Flags
     bool f_ShowInfo = false;
     bool f_InfoFade = false;
     bool f_GameOver = false;
     bool f_LevelComplete = false;
+    bool f_paused = false;
 
     // PowerUp status flags
     bool stuck, piercing, catching, lasers;
@@ -301,11 +313,6 @@ class GameLoop : public GameState
         // Increment and load next level
         CSVread(++currentLev);
 
-        // Reset Paddle Width
-        SDL_Rect tempDim = player.getDim();
-        tempDim.w = PADDLE_WIDTH;
-        player.setDim(tempDim);
-
         // Clear all balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
             delete balls[i];
@@ -315,8 +322,6 @@ class GameLoop : public GameState
         // Serve new ball
         balls.push_back(new Ball());
         resetBall(balls[0]);
-
-
 
         int k = 0;
         for (int j = 0; j < NUM_ROWS; j++){
@@ -338,6 +343,11 @@ class GameLoop : public GameState
     }
 
     void resetBall(Ball *thisBall){
+
+        hitCount = 0;
+        speedIndex = 0;
+        paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
+        yLaunchVel  = BALL_VELOCITY + speedIndex;
 
         thisBall->setStuck(true);
         //TODO: Revisit "Sticky" Functions
@@ -397,6 +407,8 @@ class GameLoop : public GameState
                 // Resolve outcome for the brick which was hit depending on its type
                 wallHit(i);
 
+                // Increment total Hit Count
+                hitTracker(1);
             }
         }
 
@@ -419,6 +431,7 @@ class GameLoop : public GameState
                 }
             }
         }
+
 
         // Top edge of field
         if ( ( ballDim.y < field.y ) && ( ballVel.y < 0 ) ) {
@@ -509,6 +522,74 @@ class GameLoop : public GameState
         scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
     }
 
+    void hitTracker(int h){
+        int tempCount = hitCount;
+        hitCount += h;
+
+        // If score increments past HIT_SPEEDUP threshold, add an extra live
+        if ( (hitCount / HIT_SPEEDUP) > (tempCount / HIT_SPEEDUP) )
+            speedUp();
+
+        printf("Hit Count is: %d\n",hitCount);
+    }
+
+    void speedUp(){
+        SDL_Point tempVel;
+
+        for (int i = balls.size() - 1; i >= 0 ; i--){
+            tempVel = balls[i]->getVel();
+
+            if ( tempVel.x > 1)
+                tempVel.x++;
+            else if ( tempVel.x < -1)
+                tempVel.x--;
+
+            if ( tempVel.y > 1)
+                tempVel.y++;
+            else if ( tempVel.y < -1)
+                tempVel.y--;
+
+            balls[i]->setVel(tempVel.x, tempVel.y);
+        }
+
+        if (speedIndex < SPEED_INDEX_MAX)
+            speedIndex++;
+
+        paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
+        yLaunchVel  = BALL_VELOCITY + speedIndex;
+
+        printf("Speed up! Index is now %d\n",speedIndex);
+
+    }
+
+    void slowDown(){
+        SDL_Point tempVel;
+
+        for (int i = balls.size() - 1; i >= 0 ; i--){
+            tempVel = balls[i]->getVel();
+
+            if ( tempVel.x > 1)
+                tempVel.x--;
+            else if ( tempVel.x < -1)
+                tempVel.x++;
+
+            if ( tempVel.y > 1)
+                tempVel.y--;
+            else if ( tempVel.y < -1)
+                tempVel.y++;
+
+            balls[i]->setVel(tempVel.x, tempVel.y);
+        }
+
+        if (speedIndex > SPEED_INDEX_MIN)
+            speedIndex--;
+
+        paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
+        yLaunchVel  = BALL_VELOCITY + speedIndex;
+
+        printf("Slow down! Index is now %d\n",speedIndex);
+    }
+
     ///Handles Player input
     void handleEvent( SDL_Event* e){
 
@@ -545,7 +626,7 @@ class GameLoop : public GameState
                     spInput = true;
                 break;
                 case SDLK_ESCAPE:
-                    set_next_state(STATE_MENU);
+                    //
                 break;
             }
         }
@@ -570,6 +651,28 @@ class GameLoop : public GameState
                 case SDLK_SPACE:
                     spInput = false;
                 break;
+                case SDLK_ESCAPE:
+
+                    if (f_GameOver) {
+                        set_next_state(STATE_MENU);
+                    }
+                    else {
+                        if (f_paused){
+                            f_paused = false;
+                            delayTimer.unpause();
+
+                            f_ShowInfo = false;
+                        }
+                        else{
+                            f_paused = true;
+                            delayTimer.pause();
+
+                            infoTextTexture.loadFromRenderedText( updateText("Paused"), textColor);
+                            f_ShowInfo = true;
+                        }
+                    }
+
+                break;
             }
         }
         
@@ -578,7 +681,7 @@ class GameLoop : public GameState
     // Main Game Loop logic flow
     void logic(){
 
-        if (!f_GameOver){
+        if ( !f_GameOver && !f_paused){
 
             // Player Input/Control Logic
             if (lInput)
@@ -645,9 +748,9 @@ class GameLoop : public GameState
                     if (catching){
 
                         if ( hitSpeed> 0)
-                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
+                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
                         else
-                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
+                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
 
                         balls[i]->setVel(0,0);
                         balls[i]->setStuck(true);
@@ -661,9 +764,9 @@ class GameLoop : public GameState
                         //hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
 
                         if ( hitSpeed> 0)
-                            balls[i]->setVel( ( hitSpeed + (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
+                            balls[i]->setVel( ( hitSpeed + (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
                         else
-                            balls[i]->setVel( ( hitSpeed - (playerDim.w / PADDLE_HIT_DIVIDER) ) / (playerDim.w / PADDLE_HIT_DIVIDER) , -balls[i]->vel.y);
+                            balls[i]->setVel( ( hitSpeed - (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
                     }
                     
                 }
@@ -701,6 +804,11 @@ class GameLoop : public GameState
                         else {
                             balls.push_back(new Ball());
                             resetBall(balls[0]);
+
+                            // Reset Paddle Width
+                            SDL_Rect tempDim = player.getDim();
+                            tempDim.w = PADDLE_WIDTH;
+                            player.setDim(tempDim);
                         }
                     }
                 }
@@ -741,6 +849,11 @@ class GameLoop : public GameState
                                         tempVel.x++;
                                     else if ( tempVel.x < 0)
                                         tempVel.x--;
+
+                                    if ( tempVel.y > 0)
+                                        tempVel.y++;
+                                    else if ( tempVel.y < 0)
+                                        tempVel.y--;
 
                                     // Why does the first multiball pickup spawn a ball stuck on the paddle?
                                     balls.push_back(new Ball(ballDim, tempVel));
@@ -801,47 +914,37 @@ class GameLoop : public GameState
                                         playerDim.x = SCREEN_WIDTH - playerDim.w;
 
                                     player.setDim(playerDim);
+
+                                    for (int i = balls.size() - 1; i >= 0; i--) {
+                                        if ( balls[i]->checkStuck() == true ) {
+                                            ballDim = balls[i]->getDim();
+
+                                            if (ballDim.x < playerDim.x)
+                                                ballDim.x = playerDim.x;
+
+                                            if (ballDim.x + ballDim.w > playerDim.x + playerDim.w)
+                                                ballDim.x = playerDim.x + playerDim.w - ballDim.w;
+                                            
+                                            balls[i]->setDim(ballDim);
+                                        }
+                                    }
                                 }
 
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Shrink"), textColor);
                             break;
 
                             case PICKUP_FAST:
-                                for (int i = balls.size() - 1; i >= 0 ; i--){
-                                    tempVel = balls[i]->getVel();
 
-                                    if ( tempVel.x > 1)
-                                        tempVel.x++;
-                                    else if ( tempVel.x < -1)
-                                        tempVel.x--;
-
-                                    if ( tempVel.y > 1)
-                                        tempVel.y++;
-                                    else if ( tempVel.y < -1)
-                                        tempVel.y--;
-
-                                    balls[i]->setVel(tempVel.x, tempVel.y);
-                                }
+                                speedUp();
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Up"), textColor);
+
                             break;
 
                             case PICKUP_SLOW:
-                                for (int i = balls.size() - 1; i >= 0 ; i--){
-                                    tempVel = balls[i]->getVel();
 
-                                    if ( tempVel.x > 1)
-                                        tempVel.x--;
-                                    else if ( tempVel.x < -1)
-                                        tempVel.x++;
-
-                                    if ( tempVel.y > 1)
-                                        tempVel.y--;
-                                    else if ( tempVel.y < -1)
-                                        tempVel.y++;
-
-                                    balls[i]->setVel(tempVel.x, tempVel.y);
-                                }
+                                slowDown();
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Down"), textColor);
+
                             break;
 
                             case PICKUP_LIFE:
@@ -947,7 +1050,7 @@ class GameLoop : public GameState
             infoTextTexture.render(SCREEN_WIDTH/2 - infoTextTexture.getWidth()/2, SCREEN_HEIGHT - infoTextTexture.getHeight() * 2 );
         }
 
-        if (f_GameOver) {
+        if (f_GameOver || f_paused) {
             infoTextTexture.setColor(spR, spG, spB);
             infoTextTexture.render(SCREEN_WIDTH/2 - infoTextTexture.getWidth()/2, SCREEN_HEIGHT - infoTextTexture.getHeight() * 2 );
         }

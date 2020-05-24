@@ -12,10 +12,6 @@
 #define PADDLE_WIDTH		80
 #define PADDLE_VELOCITY		6
 
-#define PADDLE_WIDTH_MOD    20
-
-#define PADDLE_HIT_DIVIDER  10
-
 class Paddle : public GameEntity
 {
     public:
