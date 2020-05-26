@@ -21,7 +21,11 @@ Breakout TODO:
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
-	* What happens when all levels are cleared?
+	* Settings Submenu
+
+- Extra Features?
+	* Settings tab where different modes can be enabled and/or powerup drop rates can be adjusted
+		~ Oops! All Multiball mode
 
 Known Bugs:
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated

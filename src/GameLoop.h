@@ -27,10 +27,10 @@
 #define DEFAULT_LUCK        8
 
 #define PADDLE_WIDTH_MOD    20
-#define PADDLE_HIT_DIVIDER  10
+#define PADDLE_HIT_DIVIDER  6//10
 
-#define SPEED_INDEX_MAX     4
-#define SPEED_INDEX_MIN     -2
+#define SPEED_INDEX_MAX     6//4
+#define SPEED_INDEX_MIN     0//-2
 
 #define XVEL_MIN            1
 #define XVEL_MAX            8
@@ -41,6 +41,7 @@
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
 
+#define MAX_LEVEL           34
 #define DELAY_TIME          2400
 
 class GameLoop : public GameState
@@ -53,8 +54,8 @@ class GameLoop : public GameState
     int score = 0;
     int hitCount = 0;
     int paddleHitDiv = 10;
-    int yLaunchVel = BALL_VELOCITY;
-    int speedIndex = 0;
+    int speedIndex = 2;
+    int yLaunchVel = BALL_VELOCITY + speedIndex;
 
     // Gameplay Event Flags
     bool f_ShowInfo = false;
@@ -62,6 +63,12 @@ class GameLoop : public GameState
     bool f_GameOver = false;
     bool f_LevelComplete = false;
     bool f_paused = false;
+
+    // Option Flags
+    bool f_soundEnable = true;
+    bool f_scoreEnable = true;
+    bool f_keepPwrUps = false;
+    bool f_infiniteLives = false;
 
     // PowerUp status flags
     bool stuck, piercing, catching, lasers;
@@ -98,11 +105,18 @@ class GameLoop : public GameState
     LTimer delayTimer;
 
     // Sound Effects
-    Mix_Chunk *alienShot = NULL;
-    Mix_Chunk *playerShot = NULL;
-    Mix_Chunk *alienHitA = NULL;
-    Mix_Chunk *alienHitB = NULL;
-    Mix_Chunk *playerHit = NULL;
+    Mix_Chunk *sfx_pwrUp = NULL;
+    Mix_Chunk *sfx_pwrDwn = NULL;
+    Mix_Chunk *sfx_pwrPnts = NULL;
+    Mix_Chunk *sfx_paddleHit = NULL;
+    Mix_Chunk *sfx_wallHit = NULL;
+    Mix_Chunk *sfx_brickHit = NULL;
+    Mix_Chunk *sfx_brickDestroy = NULL;
+    Mix_Chunk *sfx_laserShot = NULL;
+    Mix_Chunk *sfx_ballMiss = NULL;
+    Mix_Chunk *sfx_lastBallMiss = NULL;
+    Mix_Chunk *sfx_pauseIn = NULL;
+    Mix_Chunk *sfx_pauseOut = NULL;
 
     // Game Entities
     SDL_Rect field;
@@ -157,8 +171,16 @@ class GameLoop : public GameState
             lives = DEFAULT_LIVES;
             score = 0;
             pickupRate = DEFAULT_LUCK;
-            livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
-            scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
+
+            if (!f_infiniteLives)
+                livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+            else
+                livesTextTexture.loadFromRenderedText( updateText("Freeplay"), textColor);
+
+            if (f_scoreEnable)
+                scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
+            else
+                scoreTextTexture.loadFromRenderedText( updateText("Freeplay"), textColor);
             goNextLevel();
 
             //Initialize and display graphical interface
@@ -172,16 +194,30 @@ class GameLoop : public GameState
         delayTimer.stop();
 
         //Free the sound effects
-        Mix_FreeChunk( playerShot );
-        playerShot = NULL;
-        Mix_FreeChunk( alienShot );
-        alienShot = NULL;
-        Mix_FreeChunk( alienHitA );
-        alienHitA = NULL;
-        Mix_FreeChunk( alienHitB );
-        alienHitB = NULL;
-        Mix_FreeChunk( playerHit );
-        playerHit = NULL;
+        Mix_FreeChunk( sfx_pwrUp );
+        sfx_pwrUp = NULL;
+        Mix_FreeChunk( sfx_pwrDwn );
+        sfx_pwrDwn = NULL;
+        Mix_FreeChunk( sfx_pwrPnts );
+        sfx_pwrPnts = NULL;
+        Mix_FreeChunk( sfx_paddleHit );
+        sfx_paddleHit = NULL;
+        Mix_FreeChunk( sfx_wallHit );
+        sfx_wallHit = NULL;
+        Mix_FreeChunk( sfx_brickHit );
+        sfx_brickHit = NULL;
+        Mix_FreeChunk( sfx_brickDestroy );
+        sfx_brickDestroy = NULL;
+        Mix_FreeChunk( sfx_laserShot );
+        sfx_laserShot = NULL;
+        Mix_FreeChunk( sfx_ballMiss );
+        sfx_ballMiss = NULL;
+        Mix_FreeChunk( sfx_lastBallMiss );
+        sfx_lastBallMiss = NULL;
+        Mix_FreeChunk( sfx_pauseIn );
+        sfx_pauseIn = NULL;
+        Mix_FreeChunk( sfx_pauseOut );
+        sfx_pauseOut = NULL;
 
         //Free loaded image
         livesTextTexture.free();
@@ -214,7 +250,7 @@ class GameLoop : public GameState
         std::stringstream result;
 
         result.str( "" );
-        result << "round" << level << ".csv";
+        result << "../assets/round" << level << ".csv";
 
         // Open an existing file
         fin.open(result.str());
@@ -253,39 +289,83 @@ class GameLoop : public GameState
         bool success = true;
 
         //Load sound effects
-        playerShot = Mix_LoadWAV( "../assets/sfx_player_shot.wav" );
-        if( playerShot == NULL )
-        {
-            printf( "Failed to load player shot sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
-            success = false;
-        }
+        if (f_soundEnable == true) {
+            sfx_pwrPnts = Mix_LoadWAV( "../assets/sfx_coin_double4.wav" );
+            if( sfx_pwrPnts == NULL )
+            {
+                printf( "Failed to load sound effect 1! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
 
-        alienShot = Mix_LoadWAV( "../assets/sfx_alien_shot.wav" );
-        if( alienShot == NULL )
-        {
-            printf( "Failed to load alien shot sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
-            success = false;
-        }
+            sfx_ballMiss = Mix_LoadWAV( "../assets/sfx_damage_hit3.wav" );
+            if( sfx_ballMiss == NULL )
+            {
+                printf( "Failed to load sound effect 2! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
 
-        alienHitA = Mix_LoadWAV( "../assets/sfx_alien_hitA.wav" );
-        if( alienHitA == NULL )
-        {
-            printf( "Failed to load alien hitA sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
-            success = false;
-        }
+            sfx_lastBallMiss = Mix_LoadWAV( "../assets/sfx_exp_various6.wav" );
+            if( sfx_lastBallMiss == NULL )
+            {
+                printf( "Failed to load sound effect 3! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
 
-        alienHitB = Mix_LoadWAV( "../assets/sfx_alien_hitB.wav" );
-        if( alienHitB == NULL )
-        {
-            printf( "Failed to load alien hitB sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
-            success = false;
-        }
+            sfx_brickHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip2.wav" );
+            if( sfx_brickHit == NULL )
+            {
+                printf( "Failed to load sound effect 4! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
 
-        playerHit = Mix_LoadWAV( "../assets/sfx_player_hit.wav" );
-        if( playerHit == NULL )
-        {
-            printf( "Failed to load player hit sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
-            success = false;
+            sfx_wallHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip7.wav" );
+            if( sfx_wallHit == NULL )
+            {
+                printf( "Failed to load sound effect 5! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_paddleHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip9.wav" );
+            if( sfx_paddleHit == NULL )
+            {
+                printf( "Failed to load sound effect 6! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_brickDestroy = Mix_LoadWAV( "../assets/sfx_sounds_Blip11.wav" );
+            if( sfx_brickDestroy == NULL )
+            {
+                printf( "Failed to load sound effect 7! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrDwn = Mix_LoadWAV( "../assets/sfx_sounds_damage1.wav" );
+            if( sfx_pwrDwn == NULL )
+            {
+                printf( "Failed to load sound effect 8! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pauseIn = Mix_LoadWAV( "../assets/sfx_sounds_pause1_in.wav" );
+            if( sfx_pauseIn == NULL )
+            {
+                printf( "Failed to load sound effect 9! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pauseOut = Mix_LoadWAV( "../assets/sfx_sounds_pause1_out.wav" );
+            if( sfx_pauseOut == NULL )
+            {
+                printf( "Failed to load sound effect 10! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrUp = Mix_LoadWAV( "../assets/sfx_sounds_powerup2.wav" );
+            if( sfx_pwrUp == NULL )
+            {
+                printf( "Failed to load sound effect 11! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_laserShot = Mix_LoadWAV( "../assets/sfx_wpn_laser7.wav" );
+            if( sfx_laserShot == NULL )
+            {
+                printf( "Failed to load sound effect 12! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
         }
 
         //Render text
@@ -294,6 +374,11 @@ class GameLoop : public GameState
         infoTextTexture.loadFromRenderedText( updateText("Round: ", currentLev), textColor);
 
         return success;
+    }
+
+    void playSound(int channel, Mix_Chunk *sound, int loops){
+        if (sound != NULL)
+            Mix_PlayChannel( channel, sound , loops );
     }
 
     std::string updateText(std::string text, int num = -1){
@@ -311,7 +396,10 @@ class GameLoop : public GameState
     void goNextLevel(){
 
         // Increment and load next level
-        CSVread(++currentLev);
+        currentLev++;
+        if (currentLev > MAX_LEVEL)
+            currentLev = 1;
+        CSVread(currentLev);
 
         // Clear all balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
@@ -322,6 +410,12 @@ class GameLoop : public GameState
         // Serve new ball
         balls.push_back(new Ball());
         resetBall(balls[0]);
+
+        if (!f_keepPwrUps){
+            piercing = false;
+            catching = false;
+            lasers = false;
+        }
 
         int k = 0;
         for (int j = 0; j < NUM_ROWS; j++){
@@ -345,9 +439,10 @@ class GameLoop : public GameState
     void resetBall(Ball *thisBall){
 
         hitCount = 0;
-        speedIndex = 0;
+        speedIndex = 2;
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
+        thisBall->storeVel(yLaunchVel/4,yLaunchVel);
 
         thisBall->setStuck(true);
         //TODO: Revisit "Sticky" Functions
@@ -355,9 +450,6 @@ class GameLoop : public GameState
         //offsetPB = tempDim.w/2;
         offsetPB = thisBall->setOffset(tempDim.w/2);
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
-        piercing = false;
-        catching = false;
-        lasers = false;
     }
 
     // Function to handle hit detection between a ball specified by a pointer, and all bricks on the playing field
@@ -435,16 +527,19 @@ class GameLoop : public GameState
 
         // Top edge of field
         if ( ( ballDim.y < field.y ) && ( ballVel.y < 0 ) ) {
+            playSound( -1, sfx_wallHit , 0 );
             thisBall->vBounce();
         }
 
         // Right edge of field
         if ( ( ballDim.x > SCREEN_WIDTH - ballDim.w ) && ( ballVel.x > 0 ) ) {
+            playSound( -1, sfx_wallHit , 0 );
             thisBall->hBounce();
         }
 
         // Left edge of field
         if ( ( ballDim.x < 0 ) && ( ballVel.x < 0 ) ) {
+            playSound( -1, sfx_wallHit , 0 );
             thisBall->hBounce();
         }
 
@@ -456,12 +551,15 @@ class GameLoop : public GameState
 
         switch (wall[index]->getType()){
             case BRICK_GRAY:
+                playSound( -1, sfx_brickHit , 0 );
                 wall[index]->setType(BRICK_WHITE);
                 break;
             case BRICK_DARK:
+                playSound( -1, sfx_brickHit , 0 );
                 wall[index]->setType(BRICK_GRAY);
                 break;
             default:
+                playSound( -1, sfx_brickDestroy , 0 );
                 brickDim = wall[index]->getDim();
                 delete wall[index];
                 wall.erase(wall.begin()+index);
@@ -509,17 +607,24 @@ class GameLoop : public GameState
     }
 
     void addPoints(int p){
+
+        if (!f_scoreEnable)
+            return;
+
         int tempScore = score;
         score += p;
+
+        // Update Score Display texture
+        scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
+
+        if (f_infiniteLives)
+            return;
 
         // If score increments past SCORE_LIFEUP threshold, add an extra live
         if ( (score / SCORE_LIFEUP) > (tempScore / SCORE_LIFEUP) ){
             lives++;
             livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
         }
-
-        // Update Score Display texture
-        scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
     }
 
     void hitTracker(int h){
@@ -658,12 +763,14 @@ class GameLoop : public GameState
                     }
                     else {
                         if (f_paused){
+                            playSound( -1, sfx_pauseOut, 0 );
                             f_paused = false;
                             delayTimer.unpause();
 
                             f_ShowInfo = false;
                         }
                         else{
+                            playSound( -1, sfx_pauseIn, 0 );
                             f_paused = true;
                             delayTimer.pause();
 
@@ -696,6 +803,7 @@ class GameLoop : public GameState
             if (lasers) {
                 if (spInput) {
                     if ( laserA == NULL && laserB == NULL ){
+                        playSound( -1, sfx_laserShot , 0 );
                         laserA = new Bullet(playerDim.x, playerDim.y);
                         laserB = new Bullet(playerDim.x + playerDim.w - BULLET_WIDTH, playerDim.y);
                     }
@@ -752,6 +860,7 @@ class GameLoop : public GameState
                         else
                             balls[i]->storeVel( ( hitSpeed - (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
 
+                        playSound( -1, sfx_wallHit , 0 );
                         balls[i]->setVel(0,0);
                         balls[i]->setStuck(true);
                     }
@@ -762,6 +871,8 @@ class GameLoop : public GameState
                         
                         // TODO: condense these lines to a "LaunchBall" function
                         //hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
+
+                        playSound( -1, sfx_paddleHit , 0 );
 
                         if ( hitSpeed> 0)
                             balls[i]->setVel( ( hitSpeed + (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
@@ -781,6 +892,7 @@ class GameLoop : public GameState
                     // Trajectory is calculated in a similar manner as a regular paddle collision
                     if (spInput){
                         // TODO: condense these lines to a "LaunchBall" function
+                        playSound( -1, sfx_paddleHit , 0 );
                         balls[i]->releaseVel();
                         balls[i]->setStuck(false);
                     }
@@ -793,9 +905,12 @@ class GameLoop : public GameState
                     balls.erase(balls.begin()+i);
 
                     if (balls.size() == 0){
+                        playSound( -1, sfx_lastBallMiss , 0 );
 
-                        lives--;
-                        livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+                        if (!f_infiniteLives){
+                            lives--;
+                            livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+                        }
 
                         if (lives == 0){
                             infoTextTexture.loadFromRenderedText( updateText("Game Over"), textColor);
@@ -809,8 +924,15 @@ class GameLoop : public GameState
                             SDL_Rect tempDim = player.getDim();
                             tempDim.w = PADDLE_WIDTH;
                             player.setDim(tempDim);
+
+                            // Clear Powerups
+                            piercing = false;
+                            catching = false;
+                            lasers = false;
                         }
                     }
+                    else //balls.size() != 0
+                        playSound( -1, sfx_ballMiss , 0 );
                 }
             }
 
@@ -828,16 +950,18 @@ class GameLoop : public GameState
 
                         switch (pickup->type){
                             case PICKUP_POINT:
+                                
                                 addPoints(100);
-
+                                playSound( -1, sfx_pwrPnts , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Bonus Points"), textColor);
                             break;
 
                             // TODO: Fix catch handling for multiple balls
                             case PICKUP_CATCH:
+
                                 catching = true;
                                 lasers = false;
-
+                                playSound( -1, sfx_pwrUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Sticky Paddle"), textColor);
                             break;
 
@@ -869,12 +993,14 @@ class GameLoop : public GameState
                                     }
                                 }
 
+                                playSound( -1, sfx_pwrUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Multiball"), textColor);
                             break;
 
                             case PICKUP_PIERCE:
                                 piercing = true;
 
+                                playSound( -1, sfx_pwrUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Piercing"), textColor);
                             break;
 
@@ -882,6 +1008,7 @@ class GameLoop : public GameState
                                 lasers = true;
                                 catching = false;
 
+                                playSound( -1, sfx_pwrUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Lasers"), textColor);
                             break;
 
@@ -899,6 +1026,7 @@ class GameLoop : public GameState
                                     player.setDim(playerDim);
                                 }
 
+                                playSound( -1, sfx_pwrUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Grow"), textColor);
                             break;
 
@@ -930,6 +1058,7 @@ class GameLoop : public GameState
                                     }
                                 }
 
+                                playSound( -1, sfx_pwrDwn , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Shrink"), textColor);
                             break;
 
@@ -948,8 +1077,11 @@ class GameLoop : public GameState
                             break;
 
                             case PICKUP_LIFE:
-                                lives++;
-                                livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+
+                                if (!f_infiniteLives){
+                                    lives++;
+                                    livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
+                                }
 
                                 infoTextTexture.loadFromRenderedText( updateText("Extra Life"), textColor);
                             break;
@@ -1039,8 +1171,11 @@ class GameLoop : public GameState
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
+
+
         scoreTextTexture.setColor(spR, spG, spB);
         scoreTextTexture.render(5, 1 );
+
 
         livesTextTexture.setColor(spR, spG, spB);
         livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );

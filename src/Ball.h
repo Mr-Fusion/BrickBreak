@@ -8,8 +8,8 @@
 #include "LTimer.h"
 #include "LTexture.h"
 
-#define BALL_SIZE		    8
-#define BALL_VELOCITY		6
+#define BALL_SIZE		    10
+#define BALL_VELOCITY		4
 
 class Ball : public GameEntity
 {
