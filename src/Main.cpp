@@ -45,7 +45,7 @@ void change_state()
                 break;
 
             case STATE_GAME:
-                currentState = new GameLoop();
+                currentState = new GameLoop(gameSettings);
                 break;
 
             case STATE_EXIT:

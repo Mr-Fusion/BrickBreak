@@ -4,31 +4,10 @@
 #include <SDL.h>
 #include <stdlib.h>
 #include "Button.h"
+#include "Const.h"
 
 #define LEFT_JUSTIFY    20
 #define RIGHT_JUSTIFY   SCREEN_WIDTH - 20
-
-enum {
-    MENU_START_GAME = 0,
-    MENU_SETTINGS = 1,
-    MENU_QUIT = 2,
-    MENU_SIZE = 3
-};
-
-enum {
-    SETTINGS_SOUND = 0,
-    SETTINGS_DIFFY = 1,
-    SETTINGS_MULTI = 2,
-    SETTINGS_BACK = 3,
-    SETTINGS_SIZE = 4
-};
-
-enum {
-    DIFFY_NORM = 0,
-    DIFFY_EASY = 1,
-    DIFFY_FREE = 2,
-    DIFFY_SIZE = 3
-};
 
 class Menu : public GameState
 {
@@ -37,11 +16,11 @@ class Menu : public GameState
     bool retInput = false;
     bool subMenu = false;
     int curSelection = 0;
-
+/*
     bool sfxEnable = true;
     bool multiEnable = false;
     int difficulty = DIFFY_NORM;
-
+*/
     LTexture titleText;
     LTexture startText;
     LTexture settingText;
@@ -316,16 +295,16 @@ class Menu : public GameState
         if (retInput){
             switch (curSelection) {
                 case SETTINGS_SOUND:
-                    sfxEnable = toggleText( &soundTextValue, sfxEnable);
+                    gameSettings.sfxEnable = toggleText( &soundTextValue, gameSettings.sfxEnable);
                 break;
                 case SETTINGS_DIFFY:
-                    difficulty++;
-                    if (difficulty == DIFFY_SIZE)
-                        difficulty = DIFFY_NORM;
-                    updateDiffy( difficulty );
+                    gameSettings.difficulty++;
+                    if (gameSettings.difficulty == DIFFY_SIZE)
+                        gameSettings.difficulty = DIFFY_NORM;
+                    updateDiffy( gameSettings.difficulty );
                 break;
                 case SETTINGS_MULTI:
-                    multiEnable = toggleText( &multiTextValue, multiEnable);
+                    gameSettings.multiEnable = toggleText( &multiTextValue, gameSettings.multiEnable);
                 break;
                 case SETTINGS_BACK:
                     subMenu = false;

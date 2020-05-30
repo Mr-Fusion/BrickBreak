@@ -36,7 +36,6 @@
 #define XVEL_MAX            8
 
 #define SCORE_LIFEUP        5000
-#define HIT_SPEEDUP         15
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -55,6 +54,7 @@ class GameLoop : public GameState
     int hitCount = 0;
     int paddleHitDiv = 10;
     int speedIndex = 2;
+    int speedupThresh = 15;
     int yLaunchVel = BALL_VELOCITY + speedIndex;
 
     // Gameplay Event Flags
@@ -69,6 +69,7 @@ class GameLoop : public GameState
     bool f_scoreEnable = true;
     bool f_keepPwrUps = false;
     bool f_infiniteLives = false;
+    bool f_multiMode = false;
 
     // PowerUp status flags
     bool stuck, piercing, catching, lasers;
@@ -137,9 +138,25 @@ class GameLoop : public GameState
     SDL_Rect tempDim;
 
     ///Constructor Function
-    GameLoop(){
+    GameLoop(settings s){
         lInput = rInput = uInput = dInput = spInput = false;
         stuck = piercing = catching = lasers = false;
+
+        f_soundEnable = s.sfxEnable//true;
+
+        if (s.difficulty == DIFFY_FREE){
+            f_scoreEnable = false;
+            f_infiniteLives = true;
+            f_keepPwrUps = true;
+        }
+
+        if (s.difficulty == DIFFY_EASY){
+            speedupThresh = 20;
+            f_keepPwrUps = true;
+        }
+
+        if (s.multiEnable)
+            f_multiMode = true;
 
         field.x = 0;
         field.y = SCOREBOARD_HEIGHT;
@@ -569,7 +586,11 @@ class GameLoop : public GameState
                 // If the roll is unsuccessful, increase the likelihood for next time
                 if ( ( rand() % pickupRate ) >= 10){
                     if (pickup == NULL){
-                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                        if (f_multiMode)
+                            pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y, PICKUP_MULTI);
+                        else
+                            pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                        
                         pickupRate = (rand() % DEFAULT_LUCK) + 1;
                     }
                 }
@@ -631,8 +652,8 @@ class GameLoop : public GameState
         int tempCount = hitCount;
         hitCount += h;
 
-        // If score increments past HIT_SPEEDUP threshold, add an extra live
-        if ( (hitCount / HIT_SPEEDUP) > (tempCount / HIT_SPEEDUP) )
+        // If score increments past speedup threshold, increase speed
+        if ( (hitCount / speedupThresh) > (tempCount / speedupThresh) )
             speedUp();
 
         printf("Hit Count is: %d\n",hitCount);

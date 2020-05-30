@@ -42,7 +42,7 @@ class Pickup : public GameEntity
         WeightedTable *bonusTable = NULL;
 
     ///Constructor Function
-    Pickup(int x,int y){
+    Pickup(int x,int y, int t = -1){
 
     	dim.h = PICKUP_SIZE;
     	dim.w = PICKUP_SIZE;
@@ -52,7 +52,7 @@ class Pickup : public GameEntity
         vel.x = 0;
         vel.y = PICKUP_VELOCITY;
 
-        type = PICKUP_POINT;
+        type = t;
 
         r = g = b = 0xFF;
 
@@ -65,7 +65,10 @@ class Pickup : public GameEntity
 
         bonusTable->print();
 
-        setRandomType();
+        if (type == -1)
+            type = bonusTable->roll();
+
+        setColor();
     }
 
     ///Deconstructor
@@ -76,10 +79,7 @@ class Pickup : public GameEntity
             delete bonusTable;
     }
 
-    void setRandomType(){
-
-        //type = ( rand() % W_TOTAL);
-        type = bonusTable->roll();
+    void setColor(){
 
         switch (type) {
             case PICKUP_POINT:
