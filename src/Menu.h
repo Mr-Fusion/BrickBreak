@@ -28,16 +28,21 @@ class Menu : public GameState
 
     LTexture soundText;
     LTexture diffyText;
+    LTexture shuffleText;
     LTexture multiText;
     LTexture backText;
 
     LTexture soundTextValue;
     LTexture diffyTextValue;
+    LTexture shuffleTextValue;
     LTexture multiTextValue;
 
     LTexture creditText;
 
     SDL_Color textColor;
+
+    Mix_Chunk *sfx_browse = NULL;
+    Mix_Chunk *sfx_select = NULL;
 
     ///Constructor Function
     Menu(){
@@ -56,6 +61,7 @@ class Menu : public GameState
         	SDL_SetWindowSize(gWindow,SCREEN_WIDTH, SCREEN_HEIGHT);
 
             updateYNText( &soundTextValue, gameSettings.sfxEnable);
+            updateYNText( &multiTextValue, gameSettings.shuffleEnable);
             updateYNText( &multiTextValue, gameSettings.multiEnable);
         }
 
@@ -76,12 +82,19 @@ class Menu : public GameState
 
         soundText.free();
         diffyText.free();
+        shuffleText.free();
         multiText.free();
         backText.free();
 
         soundTextValue.free();
         diffyTextValue.free();
+        shuffleTextValue.free();
         multiTextValue.free();
+
+        Mix_FreeChunk( sfx_browse );
+        sfx_browse = NULL;
+        Mix_FreeChunk( sfx_select );
+        sfx_select = NULL;
 
     }
 
@@ -168,6 +181,11 @@ class Menu : public GameState
                 printf( "Failed to render diffyText!\n" );
                 success = false;
             }
+            if( !shuffleText.loadFromRenderedText( "Shuffle Levels:", textColor ) )
+            {
+                printf( "Failed to render shuffleText!\n" );
+                success = false;
+            }
             if( !multiText.loadFromRenderedText( "All multiballs!", textColor ) )
             {
                 printf( "Failed to render multiText!\n" );
@@ -189,14 +207,37 @@ class Menu : public GameState
                 printf( "Failed to render diffyTextValue!\n" );
                 success = false;
             }
+            if( !shuffleTextValue.loadFromRenderedText( "Off", textColor ) )
+            {
+                printf( "Failed to render shuffleTextValue!\n" );
+                success = false;
+            }
             if( !multiTextValue.loadFromRenderedText( "Off", textColor ) )
             {
                 printf( "Failed to render multiTextValue!\n" );
                 success = false;
             }
 
+            sfx_browse = Mix_LoadWAV( "../assets/sfx_sounds_Blip7.wav" );
+            if( sfx_browse == NULL )
+            {
+                printf( "Failed to load sound effect 1! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_select = Mix_LoadWAV( "../assets/sfx_sounds_Blip9.wav" );
+            if( sfx_select == NULL )
+            {
+                printf( "Failed to load sound effect 2! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+
         }
         return success;
+    }
+
+    void playSound(int channel, Mix_Chunk *sound, int loops){
+        if (gameSettings.sfxEnable)
+            Mix_PlayChannel( channel, sound , loops );
     }
     
     ///Handles mouse event
@@ -212,15 +253,18 @@ class Menu : public GameState
         if (e->type == SDL_KEYDOWN) {
             switch (e->key.keysym.sym) {
                 case SDLK_SPACE:
+                    playSound( -1, sfx_select , 0 );
                     retInput = true;
                 break;
                 case SDLK_w:
+                    playSound( -1, sfx_browse , 0 );
                     curSelection--;
                     if (curSelection < 0)
                         curSelection = size - 1;
                 break;
 
                 case SDLK_s:
+                    playSound( -1, sfx_browse , 0 );
                     curSelection++;
                     if (curSelection >= size )
                         curSelection = 0;
@@ -303,10 +347,12 @@ class Menu : public GameState
         soundText.setColor(0xFF, 0xFF, 0xFF);
         diffyText.setColor(0xFF, 0xFF, 0xFF);
         multiText.setColor(0xFF, 0xFF, 0xFF);
+        shuffleText.setColor(0xFF, 0xFF, 0xFF);
         backText.setColor(0xFF, 0xFF, 0xFF);
 
         soundTextValue.setColor(0xFF, 0xFF, 0xFF);
         diffyTextValue.setColor(0xFF, 0xFF, 0xFF);
+        shuffleTextValue.setColor(0xFF, 0xFF, 0xFF);
         multiTextValue.setColor(0xFF, 0xFF, 0xFF);
 
         if (retInput){
@@ -319,6 +365,9 @@ class Menu : public GameState
                     if (gameSettings.difficulty == DIFFY_SIZE)
                         gameSettings.difficulty = DIFFY_NORM;
                     updateDiffy( gameSettings.difficulty );
+                break;
+                case SETTINGS_SHUFF:
+                    gameSettings.shuffleEnable = toggleYNText( &shuffleTextValue, gameSettings.shuffleEnable);
                 break;
                 case SETTINGS_MULTI:
                     gameSettings.multiEnable = toggleYNText( &multiTextValue, gameSettings.multiEnable);
@@ -340,6 +389,10 @@ class Menu : public GameState
             case SETTINGS_DIFFY:
                 diffyText.setColor(0xFF, 0x00, 0x00);
                 diffyTextValue.setColor(0xFF, 0x00, 0x00);
+            break;
+            case SETTINGS_SHUFF:
+                shuffleText.setColor(0xFF, 0x00, 0x00);
+                shuffleTextValue.setColor(0xFF, 0x00, 0x00);
             break;
             case SETTINGS_MULTI:
                 multiText.setColor(0xFF, 0x00, 0x00);
@@ -369,12 +422,14 @@ class Menu : public GameState
         if ( subMenu ) {
             soundText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 - soundText.getHeight() );
             diffyText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 );
-            multiText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 + multiText.getHeight() );
-            backText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 + backText.getHeight() * 2);
+            shuffleText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 + shuffleText.getHeight() );
+            multiText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 + multiText.getHeight() * 2 );
+            backText.render( LEFT_JUSTIFY, SCREEN_HEIGHT/2 + backText.getHeight() * 3);
 
             soundTextValue.render( RIGHT_JUSTIFY - soundTextValue.getWidth(), SCREEN_HEIGHT/2 - soundTextValue.getHeight() );
             diffyTextValue.render( RIGHT_JUSTIFY - diffyTextValue.getWidth(), SCREEN_HEIGHT/2 );
-            multiTextValue.render( RIGHT_JUSTIFY - multiTextValue.getWidth(), SCREEN_HEIGHT/2 + multiTextValue.getHeight() );
+            shuffleTextValue.render( RIGHT_JUSTIFY - shuffleTextValue.getWidth(), SCREEN_HEIGHT/2 + multiTextValue.getHeight() );
+            multiTextValue.render( RIGHT_JUSTIFY - multiTextValue.getWidth(), SCREEN_HEIGHT/2 + multiTextValue.getHeight() * 2 );
         }
         else {
             startText.render(SCREEN_WIDTH/2 - startText.getWidth()/2, SCREEN_HEIGHT/2 - startText.getHeight() );

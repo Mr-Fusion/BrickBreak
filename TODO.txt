@@ -20,7 +20,6 @@ Breakout TODO:
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
-	* Add option to shuffle levels
 
 Known Bugs:
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated

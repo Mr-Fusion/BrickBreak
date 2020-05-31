@@ -36,7 +36,7 @@
 #define XVEL_MIN            1
 #define XVEL_MAX            8
 
-#define SCORE_LIFEUP        1000//5000
+#define SCORE_LIFEUP        5000
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -71,6 +71,7 @@ class GameLoop : public GameState
     bool f_keepPwrUps = false;
     bool f_infiniteLives = false;
     bool f_multiMode = false;
+    bool f_shuffleLvls = false;
 
     // PowerUp status flags
     bool stuck, piercing, catching, lasers;
@@ -138,6 +139,7 @@ class GameLoop : public GameState
 
     std::vector<Brick*> wall;
     std::vector<Ball*> balls;
+    std::vector<int> levelArray;
 
     // Temp variables
     int offsetPB;
@@ -164,6 +166,9 @@ class GameLoop : public GameState
             f_keepPwrUps = true;
         }
 
+        if (s.shuffleEnable)
+            f_shuffleLvls = true;
+
         if (s.multiEnable)
             f_multiMode = true;
 
@@ -182,9 +187,29 @@ class GameLoop : public GameState
 
         balls.push_back(new Ball());
 
-        for (int i = 0; i < balls.size(); i++){
+        for (int i = 0; i < balls.size(); i++)
             resetBall(balls[i]);
+
+        for (int i = 0; i < MAX_LEVEL; i++)
+            levelArray.push_back(i+1);
+        
+
+        if (f_shuffleLvls) {
+            int tempVal;
+            int tempIndex;
+
+            for (int j = 0; j < MAX_LEVEL; j++) {
+                for (int i = 0; i < MAX_LEVEL; i++) {
+                    tempIndex = rand() % MAX_LEVEL;
+                    tempVal = levelArray[tempIndex];
+                    levelArray[tempIndex] = levelArray[i];
+                    levelArray[i] = tempVal;
+                }
+            }
         }
+
+        for (int i = 0; i < MAX_LEVEL; i++)
+            printf("Level %d is Round %d\n",i+1,levelArray[i]);
 
         //Load media
         if( !loadMedia() )
@@ -482,10 +507,10 @@ class GameLoop : public GameState
     void goNextLevel(){
 
         // Increment and load next level
-        currentLev++;
         if (currentLev > MAX_LEVEL)
-            currentLev = 1;
-        CSVread(currentLev);
+            currentLev = 0;
+        CSVread(levelArray[currentLev]);
+        currentLev++;
 
         // Clear all balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
@@ -634,43 +659,67 @@ class GameLoop : public GameState
     void wallHit(int index){
 
         SDL_Rect brickDim;
+        bool destroy = false;
 
         switch (wall[index]->getType()){
             case BRICK_GRAY:
-                playSound( -1, sfx_brickHit , 0 );
-                wall[index]->setType(BRICK_WHITE);
-                break;
+                if (piercing){
+                    playSound( -1, sfx_brickDestroy , 0 );
+                    destroy = true;
+                    addPoints(20);
+                }
+                else {
+                    playSound( -1, sfx_brickHit , 0 );
+                    wall[index]->setType(BRICK_WHITE);
+                    addPoints(10);
+                }
+
+            break;
             case BRICK_DARK:
-                playSound( -1, sfx_brickHit , 0 );
-                wall[index]->setType(BRICK_GRAY);
-                break;
+                if (piercing){
+                    playSound( -1, sfx_brickDestroy , 0 );
+                    destroy = true;
+                    addPoints(30);
+                }
+                else {
+                    playSound( -1, sfx_brickHit , 0 );
+                    wall[index]->setType(BRICK_GRAY);
+                    addPoints(10);
+                }
+            break;
             default:
                 playSound( -1, sfx_brickDestroy , 0 );
-                brickDim = wall[index]->getDim();
-                delete wall[index];
-                wall.erase(wall.begin()+index);
+                destroy = true;
                 addPoints(10);
+            break;
+        }
 
-                // Roll for spawning a pickup from eliminated brick
-                // If the roll is unsuccessful, increase the likelihood for next time
-                if ( ( rand() % pickupRate ) >= 10){
-                    if (pickup == NULL){
-                        if (f_multiMode)
-                            pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y, PICKUP_MULTI);
-                        else
-                            pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                        
-                        pickupRate = (rand() % DEFAULT_LUCK) + 1;
-                    }
-                }
-                else
-                    pickupRate++;
+        if (destroy){
+            brickDim = wall[index]->getDim();
+            delete wall[index];
+            wall.erase(wall.begin()+index);
 
-                // If all bricks have been elimated, flag the level as completed
-                if (wall.size() == 0){
-                    f_LevelComplete = true;
-                    delayTimer.start();
+
+            // Roll for spawning a pickup from eliminated brick
+            // If the roll is unsuccessful, increase the likelihood for next time
+            if ( ( rand() % pickupRate ) >= 10){
+                if (pickup == NULL){
+                    if (f_multiMode)
+                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y, PICKUP_MULTI);
+                    else
+                        pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
+                    
+                    pickupRate = (rand() % DEFAULT_LUCK) + 1;
                 }
+            }
+            else
+                pickupRate++;
+
+            // If all bricks have been elimated, flag the level as completed
+            if (wall.size() == 0){
+                f_LevelComplete = true;
+                delayTimer.start();
+            }
         }
     }
 

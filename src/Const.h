@@ -15,8 +15,8 @@ extern TTF_Font *gFont = NULL;
 #define TITLE				"BrickBreak"
 
 #define MAJOR_REV           0
-#define MINOR_REV           3
-#define INCREMENTAL_REV     4
+#define MINOR_REV           4
+#define INCREMENTAL_REV     0
 
 //Screen dimension constants
 #define SCREEN_WIDTH        528//640
@@ -35,9 +35,10 @@ enum {
 enum {
     SETTINGS_SOUND = 0,
     SETTINGS_DIFFY = 1,
-    SETTINGS_MULTI = 2,
-    SETTINGS_BACK = 3,
-    SETTINGS_SIZE = 4
+    SETTINGS_SHUFF = 2,
+    SETTINGS_MULTI = 3,
+    SETTINGS_BACK = 4,
+    SETTINGS_SIZE = 5
 };
 
 enum {
@@ -48,9 +49,10 @@ enum {
 };
 
 struct settings {
-    settings() : difficulty(DIFFY_NORM), sfxEnable(true), multiEnable(false) {}
+    settings() : difficulty(DIFFY_NORM), sfxEnable(true), shuffleEnable(false), multiEnable(false) {}
     int difficulty;
     bool sfxEnable;
+    bool shuffleEnable;
     bool multiEnable;
 } gameSettings;
 
