@@ -54,6 +54,9 @@ class Menu : public GameState
         	//Initialize Menu here
 
         	SDL_SetWindowSize(gWindow,SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            updateYNText( &soundTextValue, gameSettings.sfxEnable);
+            updateYNText( &multiTextValue, gameSettings.multiEnable);
         }
 
     }
@@ -70,6 +73,15 @@ class Menu : public GameState
         settingText.free();
         quitText.free();
         creditText.free();
+
+        soundText.free();
+        diffyText.free();
+        multiText.free();
+        backText.free();
+
+        soundTextValue.free();
+        diffyTextValue.free();
+        multiTextValue.free();
 
     }
 
@@ -199,7 +211,7 @@ class Menu : public GameState
 
         if (e->type == SDL_KEYDOWN) {
             switch (e->key.keysym.sym) {
-                case SDLK_RETURN:
+                case SDLK_SPACE:
                     retInput = true;
                 break;
                 case SDLK_w:
@@ -217,16 +229,21 @@ class Menu : public GameState
         }
     }
 
-    bool toggleText(LTexture *text, bool flag) {
-        if (flag) {
+    bool toggleYNText(LTexture *text, bool flag) {
+        if (flag) 
             flag = false;
-            text->loadFromRenderedText( "Off", textColor );
-        }
-        else {
+        else 
             flag = true;
-            text->loadFromRenderedText( "On", textColor );
-        }
+
+        updateYNText(text, flag);
         return flag;
+    }
+
+    void updateYNText(LTexture *text, bool flag) {
+        if (flag)
+            text->loadFromRenderedText( "On", textColor );
+        else
+            text->loadFromRenderedText( "Off", textColor );
     }
 
     void updateDiffy(int d){
@@ -243,7 +260,7 @@ class Menu : public GameState
         }
     }
 
-    void topMenu(){
+    void topMenu() {
 
         // Set all options to white text by default
         startText.setColor(0xFF, 0xFF, 0xFF);
@@ -295,7 +312,7 @@ class Menu : public GameState
         if (retInput){
             switch (curSelection) {
                 case SETTINGS_SOUND:
-                    gameSettings.sfxEnable = toggleText( &soundTextValue, gameSettings.sfxEnable);
+                    gameSettings.sfxEnable = toggleYNText( &soundTextValue, gameSettings.sfxEnable);
                 break;
                 case SETTINGS_DIFFY:
                     gameSettings.difficulty++;
@@ -304,7 +321,7 @@ class Menu : public GameState
                     updateDiffy( gameSettings.difficulty );
                 break;
                 case SETTINGS_MULTI:
-                    gameSettings.multiEnable = toggleText( &multiTextValue, gameSettings.multiEnable);
+                    gameSettings.multiEnable = toggleYNText( &multiTextValue, gameSettings.multiEnable);
                 break;
                 case SETTINGS_BACK:
                     subMenu = false;

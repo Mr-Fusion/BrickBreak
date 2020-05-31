@@ -14,18 +14,13 @@ Breakout TODO:
 	* Identification between powerups
 		~ Different texture/Icons (For colorblind players)
 - Special effects?
-	* Sound Effects
 	* particles/animations?
 - General Balancing
 	* What should be the min/max ball speed [Need to playtest]
 - Miscellaneous
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
-	* Settings Submenu
-
-- Extra Features?
-	* Settings tab where different modes can be enabled and/or powerup drop rates can be adjusted
-		~ Oops! All Multiball mode
+	* Add option to shuffle levels
 
 Known Bugs:
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated

@@ -31,11 +31,12 @@
 
 #define SPEED_INDEX_MAX     6//4
 #define SPEED_INDEX_MIN     0//-2
+#define SPEED_INDEX_DEFAULT 3
 
 #define XVEL_MIN            1
 #define XVEL_MAX            8
 
-#define SCORE_LIFEUP        5000
+#define SCORE_LIFEUP        1000//5000
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -53,7 +54,7 @@ class GameLoop : public GameState
     int score = 0;
     int hitCount = 0;
     int paddleHitDiv = 10;
-    int speedIndex = 2;
+    int speedIndex = SPEED_INDEX_DEFAULT;
     int speedupThresh = 15;
     int yLaunchVel = BALL_VELOCITY + speedIndex;
 
@@ -106,8 +107,8 @@ class GameLoop : public GameState
     LTimer delayTimer;
 
     // Sound Effects
-    Mix_Chunk *sfx_pwrUp = NULL;
-    Mix_Chunk *sfx_pwrDwn = NULL;
+    Mix_Chunk *sfx_pwrPierce = NULL;
+    Mix_Chunk *sfx_pwrShrink = NULL;
     Mix_Chunk *sfx_pwrPnts = NULL;
     Mix_Chunk *sfx_paddleHit = NULL;
     Mix_Chunk *sfx_wallHit = NULL;
@@ -118,6 +119,14 @@ class GameLoop : public GameState
     Mix_Chunk *sfx_lastBallMiss = NULL;
     Mix_Chunk *sfx_pauseIn = NULL;
     Mix_Chunk *sfx_pauseOut = NULL;
+    Mix_Chunk *sfx_pwrSpeedUp = NULL;
+    Mix_Chunk *sfx_pwrSpeedDown = NULL;
+    Mix_Chunk *sfx_lifeUp = NULL;
+
+    Mix_Chunk *sfx_pwrCatch = NULL;
+    Mix_Chunk *sfx_pwrMulti = NULL;
+    Mix_Chunk *sfx_pwrShoot = NULL;
+    Mix_Chunk *sfx_pwrGrow = NULL;
 
     // Game Entities
     SDL_Rect field;
@@ -142,7 +151,7 @@ class GameLoop : public GameState
         lInput = rInput = uInput = dInput = spInput = false;
         stuck = piercing = catching = lasers = false;
 
-        f_soundEnable = s.sfxEnable//true;
+        f_soundEnable = s.sfxEnable;//true;
 
         if (s.difficulty == DIFFY_FREE){
             f_scoreEnable = false;
@@ -211,10 +220,10 @@ class GameLoop : public GameState
         delayTimer.stop();
 
         //Free the sound effects
-        Mix_FreeChunk( sfx_pwrUp );
-        sfx_pwrUp = NULL;
-        Mix_FreeChunk( sfx_pwrDwn );
-        sfx_pwrDwn = NULL;
+        Mix_FreeChunk( sfx_pwrPierce );
+        sfx_pwrPierce = NULL;
+        Mix_FreeChunk( sfx_pwrShrink );
+        sfx_pwrShrink = NULL;
         Mix_FreeChunk( sfx_pwrPnts );
         sfx_pwrPnts = NULL;
         Mix_FreeChunk( sfx_paddleHit );
@@ -235,6 +244,22 @@ class GameLoop : public GameState
         sfx_pauseIn = NULL;
         Mix_FreeChunk( sfx_pauseOut );
         sfx_pauseOut = NULL;
+
+        Mix_FreeChunk( sfx_pwrSpeedUp );
+        sfx_pwrSpeedUp = NULL;
+        Mix_FreeChunk( sfx_pwrSpeedDown );
+        sfx_pwrSpeedDown = NULL;
+        Mix_FreeChunk( sfx_lifeUp );
+        sfx_lifeUp = NULL;
+
+        Mix_FreeChunk( sfx_pwrCatch );
+        sfx_pwrCatch = NULL;
+        Mix_FreeChunk( sfx_pwrMulti );
+        sfx_pwrMulti = NULL;
+        Mix_FreeChunk( sfx_pwrShoot );
+        sfx_pwrShoot = NULL;
+        Mix_FreeChunk( sfx_pwrGrow );
+        sfx_pwrGrow = NULL;
 
         //Free loaded image
         livesTextTexture.free();
@@ -347,14 +372,14 @@ class GameLoop : public GameState
                 printf( "Failed to load sound effect 6! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
-            sfx_brickDestroy = Mix_LoadWAV( "../assets/sfx_sounds_Blip11.wav" );
+            sfx_brickDestroy = Mix_LoadWAV( "../assets/sfx_sounds_Blip7.wav" ); //Blip11
             if( sfx_brickDestroy == NULL )
             {
                 printf( "Failed to load sound effect 7! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
-            sfx_pwrDwn = Mix_LoadWAV( "../assets/sfx_sounds_damage1.wav" );
-            if( sfx_pwrDwn == NULL )
+            sfx_pwrShrink = Mix_LoadWAV( "../assets/sfx_shift_down.wav" );
+            if( sfx_pwrShrink == NULL )
             {
                 printf( "Failed to load sound effect 8! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
@@ -371,16 +396,60 @@ class GameLoop : public GameState
                 printf( "Failed to load sound effect 10! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
-            sfx_pwrUp = Mix_LoadWAV( "../assets/sfx_sounds_powerup2.wav" );
-            if( sfx_pwrUp == NULL )
+            sfx_pwrPierce = Mix_LoadWAV( "../assets/sfx_shift_up.wav" );
+            if( sfx_pwrPierce == NULL )
             {
                 printf( "Failed to load sound effect 11! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
-            sfx_laserShot = Mix_LoadWAV( "../assets/sfx_wpn_laser7.wav" );
+            sfx_laserShot = Mix_LoadWAV( "../assets/sfx_laser.wav" );
             if( sfx_laserShot == NULL )
             {
                 printf( "Failed to load sound effect 12! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+
+            sfx_pwrSpeedUp = Mix_LoadWAV( "../assets/sfx_speed_up.wav" );
+            if( sfx_pwrSpeedUp == NULL )
+            {
+                printf( "Failed to load sound effect 13! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrSpeedDown = Mix_LoadWAV( "../assets/sfx_speed_down.wav" );
+            if( sfx_pwrSpeedDown == NULL )
+            {
+                printf( "Failed to load sound effect 14! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_lifeUp = Mix_LoadWAV( "../assets/sfx_life_up.wav" );
+            if( sfx_lifeUp == NULL )
+            {
+                printf( "Failed to load sound effect 15! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+
+            sfx_pwrCatch = Mix_LoadWAV( "../assets/sfx_catch.wav" );
+            if( sfx_pwrCatch == NULL )
+            {
+                printf( "Failed to load sound effect 16! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrGrow = Mix_LoadWAV( "../assets/sfx_grow.wav" );
+            if( sfx_pwrGrow == NULL )
+            {
+                printf( "Failed to load sound effect 17! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrShoot = Mix_LoadWAV( "../assets/sfx_shoot.wav" );
+            if( sfx_lifeUp == NULL )
+            {
+                printf( "Failed to load sound effect 18! SDL_mixer Error: %s\n", Mix_GetError() );
+                success = false;
+            }
+            sfx_pwrMulti = Mix_LoadWAV( "../assets/sfx_multi.wav" );
+            if( sfx_lifeUp == NULL )
+            {
+                printf( "Failed to load sound effect 19! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
         }
@@ -456,7 +525,7 @@ class GameLoop : public GameState
     void resetBall(Ball *thisBall){
 
         hitCount = 0;
-        speedIndex = 2;
+        speedIndex = SPEED_INDEX_DEFAULT;
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
         thisBall->storeVel(yLaunchVel/4,yLaunchVel);
@@ -644,6 +713,7 @@ class GameLoop : public GameState
         // If score increments past SCORE_LIFEUP threshold, add an extra live
         if ( (score / SCORE_LIFEUP) > (tempScore / SCORE_LIFEUP) ){
             lives++;
+            playSound( -1, sfx_lifeUp , 0 );
             livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
         }
     }
@@ -982,7 +1052,7 @@ class GameLoop : public GameState
 
                                 catching = true;
                                 lasers = false;
-                                playSound( -1, sfx_pwrUp , 0 );
+                                playSound( -1, sfx_pwrCatch , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Sticky Paddle"), textColor);
                             break;
 
@@ -1014,14 +1084,14 @@ class GameLoop : public GameState
                                     }
                                 }
 
-                                playSound( -1, sfx_pwrUp , 0 );
+                                playSound( -1, sfx_pwrMulti , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Multiball"), textColor);
                             break;
 
                             case PICKUP_PIERCE:
                                 piercing = true;
 
-                                playSound( -1, sfx_pwrUp , 0 );
+                                playSound( -1, sfx_pwrPierce , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Piercing"), textColor);
                             break;
 
@@ -1029,7 +1099,7 @@ class GameLoop : public GameState
                                 lasers = true;
                                 catching = false;
 
-                                playSound( -1, sfx_pwrUp , 0 );
+                                playSound( -1, sfx_pwrShoot , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Lasers"), textColor);
                             break;
 
@@ -1047,7 +1117,7 @@ class GameLoop : public GameState
                                     player.setDim(playerDim);
                                 }
 
-                                playSound( -1, sfx_pwrUp , 0 );
+                                playSound( -1, sfx_pwrGrow , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Grow"), textColor);
                             break;
 
@@ -1079,13 +1149,14 @@ class GameLoop : public GameState
                                     }
                                 }
 
-                                playSound( -1, sfx_pwrDwn , 0 );
+                                playSound( -1, sfx_pwrShrink , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Shrink"), textColor);
                             break;
 
                             case PICKUP_FAST:
 
                                 speedUp();
+                                playSound( -1, sfx_pwrSpeedUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Up"), textColor);
 
                             break;
@@ -1093,6 +1164,7 @@ class GameLoop : public GameState
                             case PICKUP_SLOW:
 
                                 slowDown();
+                                playSound( -1, sfx_pwrSpeedDown , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Down"), textColor);
 
                             break;
@@ -1101,6 +1173,7 @@ class GameLoop : public GameState
 
                                 if (!f_infiniteLives){
                                     lives++;
+                                    playSound( -1, sfx_lifeUp , 0 );
                                     livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
                                 }
 

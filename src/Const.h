@@ -16,7 +16,7 @@ extern TTF_Font *gFont = NULL;
 
 #define MAJOR_REV           0
 #define MINOR_REV           3
-#define INCREMENTAL_REV     3
+#define INCREMENTAL_REV     4
 
 //Screen dimension constants
 #define SCREEN_WIDTH        528//640
@@ -24,13 +24,6 @@ extern TTF_Font *gFont = NULL;
 #define SCREEN_FPS          60
 
 const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;
-
-struct settings {
-    settings() : difficulty(DIFFY_NORM), sfxEnable(true), multiEnable(false) {}
-    int difficulty;
-    bool sfxEnable;
-    bool multiEnable;
-} gameSettings;
 
 enum {
     MENU_START_GAME = 0,
@@ -53,5 +46,12 @@ enum {
     DIFFY_FREE = 2,
     DIFFY_SIZE = 3
 };
+
+struct settings {
+    settings() : difficulty(DIFFY_NORM), sfxEnable(true), multiEnable(false) {}
+    int difficulty;
+    bool sfxEnable;
+    bool multiEnable;
+} gameSettings;
 
 #endif // CONST_H_INCLUDED
