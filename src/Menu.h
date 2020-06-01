@@ -61,7 +61,7 @@ class Menu : public GameState
         	SDL_SetWindowSize(gWindow,SCREEN_WIDTH, SCREEN_HEIGHT);
 
             updateYNText( &soundTextValue, gameSettings.sfxEnable);
-            updateYNText( &multiTextValue, gameSettings.shuffleEnable);
+            updateYNText( &shuffleTextValue, gameSettings.shuffleEnable);
             updateYNText( &multiTextValue, gameSettings.multiEnable);
         }
 

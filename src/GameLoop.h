@@ -839,12 +839,49 @@ class GameLoop : public GameState
     void handleEvent( SDL_Event* e){
 
         int x, y;
+        SDL_Rect tempDim = player.getDim();
+/*
+        int x, y;
 
         //Get mouse position
         if( e->type == SDL_MOUSEMOTION ){
             SDL_GetMouseState( &x, &y );
+            //lPaddle.x = x;
+        lPaddle.y = y - (lPaddle.h/2);
+            if ( y > SCREEN_HEIGHT - lPaddle.h/2 )
+                lPaddle.y = SCREEN_HEIGHT - lPaddle.h;
+            if ( y < lPaddle.h/2 )
+                lPaddle.y = 0;
         }
 
+
+        if( e->button.button == SDL_BUTTON_RIGHT && e->type == SDL_MOUSEBUTTONUP ){
+            set_next_state(STATE_MENU);
+        }
+*/
+
+        //Get mouse position
+        if( e->type == SDL_MOUSEMOTION ){
+            if (!f_paused){
+                SDL_GetMouseState( &x, &y );
+                
+                tempDim.x = x - tempDim.w/2;
+
+                if ( x > SCREEN_WIDTH - tempDim.w/2 )
+                    tempDim.x = SCREEN_WIDTH - tempDim.w;
+                if ( x < tempDim.w/2 )
+                    tempDim.x = 0;
+
+                player.setDim(tempDim);
+            }
+        }
+
+        if( e->button.button == SDL_BUTTON_LEFT && e->type == SDL_MOUSEBUTTONDOWN ){
+            spInput = true;
+        }
+        if( e->button.button == SDL_BUTTON_LEFT && e->type == SDL_MOUSEBUTTONUP ){
+            spInput = false;
+        }
 
         if( e->button.button == SDL_BUTTON_RIGHT && e->type == SDL_MOUSEBUTTONUP ){
             set_next_state(STATE_MENU);
@@ -990,7 +1027,7 @@ class GameLoop : public GameState
                     // TODO: Can offsetPB be moved?
                     /*offsetPB = */balls[i]->setOffset(ballDim.x - playerDim.x);
 
-                    int hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
+                    int hitSpeed = ballDim.x + ballDim.w/2 - ( playerDim.x + playerDim.w/2);
 
                     // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
                     if (catching){
@@ -1046,6 +1083,11 @@ class GameLoop : public GameState
 
                     if (balls.size() == 0){
                         playSound( -1, sfx_lastBallMiss , 0 );
+
+                        if (pickup != NULL){
+                            delete pickup;
+                            pickup = NULL;
+                        }
 
                         if (!f_infiniteLives){
                             lives--;
