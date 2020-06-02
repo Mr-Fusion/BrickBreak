@@ -21,9 +21,6 @@ Breakout TODO:
 	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
 
-- Feedback
-	* Address initial serve angle change when paddle is moving
-
 
 Known Bugs:
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated

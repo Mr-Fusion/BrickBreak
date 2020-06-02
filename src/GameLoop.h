@@ -150,6 +150,9 @@ class GameLoop : public GameState
 
     ///Constructor Function
     GameLoop(settings s){
+
+        SDL_ShowCursor(SDL_DISABLE);
+        
         lInput = rInput = uInput = dInput = spInput = false;
         stuck = piercing = catching = lasers = false;
 
@@ -553,7 +556,7 @@ class GameLoop : public GameState
         speedIndex = SPEED_INDEX_DEFAULT;
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
-        thisBall->storeVel(yLaunchVel/4,yLaunchVel);
+        thisBall->storeVel(yLaunchVel/4,-yLaunchVel);
 
         thisBall->setStuck(true);
         //TODO: Revisit "Sticky" Functions
@@ -1309,6 +1312,7 @@ class GameLoop : public GameState
             if (delayTimer.getTicks() > DELAY_TIME){
                 delayTimer.stop();
                 f_ShowInfo = false;
+                f_InfoFade = false;
             }
         }
 

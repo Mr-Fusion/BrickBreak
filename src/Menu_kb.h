@@ -15,19 +15,12 @@ class Menu : public GameState
 
     bool retInput = false;
     bool subMenu = false;
-    int curSelection = -1;
+    int curSelection = 0;
 /*
     bool sfxEnable = true;
     bool multiEnable = false;
     int difficulty = DIFFY_NORM;
 */
-
-    LButton buttonA;
-    LButton buttonB;
-    LButton buttonC;
-    LButton buttonD;
-    LButton buttonE;
-
     LTexture titleText;
     LTexture startText;
     LTexture settingText;
@@ -54,8 +47,6 @@ class Menu : public GameState
     ///Constructor Function
     Menu(){
 
-        SDL_ShowCursor(SDL_ENABLE);
-
         textColor = { 0xFF, 0xFF, 0xFF };
 
         //Load media
@@ -66,11 +57,6 @@ class Menu : public GameState
         else
         {
         	//Initialize Menu here
-            buttonA = LButton(0,SCREEN_HEIGHT/2 - soundText.getHeight(), SCREEN_WIDTH, soundText.getHeight() );
-            buttonB = LButton(0,SCREEN_HEIGHT/2, SCREEN_WIDTH, diffyText.getHeight() );
-            buttonC = LButton(0,SCREEN_HEIGHT/2 + shuffleText.getHeight(), SCREEN_WIDTH, shuffleText.getHeight() );
-            buttonD = LButton(0,SCREEN_HEIGHT/2 + multiText.getHeight() * 2, SCREEN_WIDTH, multiText.getHeight() );
-            buttonE = LButton(0,SCREEN_HEIGHT/2 + backText.getHeight() * 3, SCREEN_WIDTH, backText.getHeight() );
 
         	SDL_SetWindowSize(gWindow,SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -257,28 +243,12 @@ class Menu : public GameState
     ///Handles mouse event
     void handleEvent( SDL_Event* e){
 
-        int x, y;
         int size;
 
-        //Get mouse position
-        if( e->type == SDL_MOUSEMOTION )
-            SDL_GetMouseState( &x, &y );
-
-        if( e->button.button == SDL_BUTTON_LEFT && e->type == SDL_MOUSEBUTTONDOWN )
-            retInput = true;
-
-        buttonA.handleEvent(e);
-        buttonB.handleEvent(e);
-        buttonC.handleEvent(e);
-        buttonD.handleEvent(e);
-        buttonE.handleEvent(e);
-/*
-        if (subMenu){
+        if (subMenu)
             size = SETTINGS_SIZE;
-        }
-        else {
+        else
             size = MENU_SIZE;
-        }
 
         if (e->type == SDL_KEYDOWN) {
             switch (e->key.keysym.sym) {
@@ -301,7 +271,6 @@ class Menu : public GameState
                 break;
             }
         }
-        */
     }
 
     bool toggleYNText(LTexture *text, bool flag) {
@@ -342,20 +311,6 @@ class Menu : public GameState
         settingText.setColor(0xFF, 0xFF, 0xFF);
         quitText.setColor(0xFF, 0xFF, 0xFF);
 
-        int tempSel = curSelection;
-        curSelection = -1;
-
-        if (buttonA.inside)
-            curSelection = MENU_START_GAME;
-        if (buttonB.inside)
-            curSelection = MENU_SETTINGS;
-        if (buttonC.inside)
-            curSelection = MENU_QUIT;
-
-        if (curSelection != tempSel && curSelection != -1)
-            playSound( -1, sfx_browse , 0 );
-
-
         // Highlight the appropriate option in red corresponding to the current cursor selection
         switch (curSelection) {
             case MENU_START_GAME:
@@ -372,16 +327,13 @@ class Menu : public GameState
         if (retInput){
             switch (curSelection) {
                 case MENU_START_GAME:
-                    playSound( -1, sfx_select , 0 );
                     set_next_state( STATE_GAME );
                 break;
                 case MENU_SETTINGS:
-                    playSound( -1, sfx_select , 0 );
                     subMenu = true;
-                    //curSelection = 0;
+                    curSelection = 0;
                 break;
                 case MENU_QUIT:
-                    playSound( -1, sfx_select , 0 );
                     set_next_state( STATE_EXIT );
                 break;
             }
@@ -403,48 +355,26 @@ class Menu : public GameState
         shuffleTextValue.setColor(0xFF, 0xFF, 0xFF);
         multiTextValue.setColor(0xFF, 0xFF, 0xFF);
 
-        int tempSel = curSelection;
-        curSelection = -1;
-
-        if (buttonA.inside)
-            curSelection = SETTINGS_SOUND;
-        if (buttonB.inside)
-            curSelection = SETTINGS_DIFFY;
-        if (buttonC.inside)
-            curSelection = SETTINGS_SHUFF;
-        if (buttonD.inside)
-            curSelection = SETTINGS_MULTI;
-        if (buttonE.inside)
-            curSelection = SETTINGS_BACK;
-
-        if (curSelection != tempSel && curSelection != -1)
-            playSound( -1, sfx_browse , 0 );
-
         if (retInput){
             switch (curSelection) {
                 case SETTINGS_SOUND:
                     gameSettings.sfxEnable = toggleYNText( &soundTextValue, gameSettings.sfxEnable);
-                    playSound( -1, sfx_select , 0 );
                 break;
                 case SETTINGS_DIFFY:
-                    playSound( -1, sfx_select , 0 );
                     gameSettings.difficulty++;
                     if (gameSettings.difficulty == DIFFY_SIZE)
                         gameSettings.difficulty = DIFFY_NORM;
                     updateDiffy( gameSettings.difficulty );
                 break;
                 case SETTINGS_SHUFF:
-                    playSound( -1, sfx_select , 0 );
                     gameSettings.shuffleEnable = toggleYNText( &shuffleTextValue, gameSettings.shuffleEnable);
                 break;
                 case SETTINGS_MULTI:
-                    playSound( -1, sfx_select , 0 );
                     gameSettings.multiEnable = toggleYNText( &multiTextValue, gameSettings.multiEnable);
                 break;
                 case SETTINGS_BACK:
-                    playSound( -1, sfx_select , 0 );
                     subMenu = false;
-                    //curSelection = 0;
+                    curSelection = 0;
                 break;
             }
             retInput = false;
@@ -481,11 +411,6 @@ class Menu : public GameState
         else
             topMenu();
 
-        buttonA.logic();
-        buttonB.logic();
-        buttonC.logic();
-        buttonD.logic();
-        buttonE.logic();
     }
 
     void render(){

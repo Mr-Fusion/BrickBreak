@@ -218,7 +218,7 @@ int main( int argc, char* args[] )
 /**-----[GAME LOOP START!]-----**/
 		while( !quit )
 		{
-			SDL_ShowCursor(SDL_DISABLE);
+			//SDL_ShowCursor(SDL_DISABLE);
 
 	        //Start cap timer
 	        capTimer.start();
