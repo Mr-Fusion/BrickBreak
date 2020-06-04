@@ -64,6 +64,7 @@ class GameLoop : public GameState
     bool f_GameOver = false;
     bool f_LevelComplete = false;
     bool f_paused = false;
+    bool f_newServe = false;
 
     // Option Flags
     bool f_soundEnable = true;
@@ -96,7 +97,7 @@ class GameLoop : public GameState
 
     SDL_Color textColor = { spR, spG, spB, 0xFF};
 
-    // In memory text stream
+    // In memory text stream (REMOVE?)
     std::stringstream msgText;
 
     // Scene textures
@@ -123,7 +124,6 @@ class GameLoop : public GameState
     Mix_Chunk *sfx_pwrSpeedUp = NULL;
     Mix_Chunk *sfx_pwrSpeedDown = NULL;
     Mix_Chunk *sfx_lifeUp = NULL;
-
     Mix_Chunk *sfx_pwrCatch = NULL;
     Mix_Chunk *sfx_pwrMulti = NULL;
     Mix_Chunk *sfx_pwrShoot = NULL;
@@ -272,14 +272,12 @@ class GameLoop : public GameState
         sfx_pauseIn = NULL;
         Mix_FreeChunk( sfx_pauseOut );
         sfx_pauseOut = NULL;
-
         Mix_FreeChunk( sfx_pwrSpeedUp );
         sfx_pwrSpeedUp = NULL;
         Mix_FreeChunk( sfx_pwrSpeedDown );
         sfx_pwrSpeedDown = NULL;
         Mix_FreeChunk( sfx_lifeUp );
         sfx_lifeUp = NULL;
-
         Mix_FreeChunk( sfx_pwrCatch );
         sfx_pwrCatch = NULL;
         Mix_FreeChunk( sfx_pwrMulti );
@@ -289,12 +287,12 @@ class GameLoop : public GameState
         Mix_FreeChunk( sfx_pwrGrow );
         sfx_pwrGrow = NULL;
 
-        //Free loaded image
+        //Free loaded images
         livesTextTexture.free();
         infoTextTexture.free();
         scoreTextTexture.free();
 
-        //delete all pointers in the wall vector and clear all elements
+        //delete all pointers and vectors and clear all elements
         for (int i = wall.size() - 1; i >= 0; i--){
             delete wall[i];
         }
@@ -352,6 +350,16 @@ class GameLoop : public GameState
         printf("CSVRead Complete\n");
     }
 
+    bool loadSound(Mix_Chunk *chunk, std::string path){
+        bool success = true;
+        chunk = Mix_LoadWAV(path);
+        if ( chunk == NULL) {
+            printf( "Failed to load %s! SDL_mixer Error: %s\n", path, Mix_GetError() );
+            success = false;
+        }
+        return success;
+    }
+
     //TODO: Can we streamline the sprite sheet creation into a function?
     bool loadMedia()
     {
@@ -360,6 +368,7 @@ class GameLoop : public GameState
 
         //Load sound effects
         if (f_soundEnable == true) {
+            /*
             sfx_pwrPnts = Mix_LoadWAV( "../assets/sfx_coin_double4.wav" );
             if( sfx_pwrPnts == NULL )
             {
@@ -480,6 +489,45 @@ class GameLoop : public GameState
                 printf( "Failed to load sound effect 19! SDL_mixer Error: %s\n", Mix_GetError() );
                 success = false;
             }
+            */
+            if ( !loadSound(sfx_pwrPnts,"../assets/sfx_coin_double4.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_ballMiss, "../assets/sfx_damage_hit3.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_lastBallMiss, "../assets/sfx_exp_various6.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_brickHit, "../assets/sfx_sounds_Blip2.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_wallHit, "../assets/sfx_sounds_Blip7.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_paddleHit, "../assets/sfx_sounds_Blip9.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_brickDestroy, "../assets/sfx_sounds_Blip7.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrShrink, "../assets/sfx_shift_down.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pauseIn, "../assets/sfx_sounds_pause1_in.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pauseOut, "../assets/sfx_sounds_pause1_out.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrPierce, "../assets/sfx_shift_up.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_laserShot, "../assets/sfx_laser.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrSpeedUp, "../assets/sfx_speed_up.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrSpeedDown, "../assets/sfx_speed_down.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_lifeUp, "../assets/sfx_life_up.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrCatch, "../assets/sfx_catch.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrGrow, "../assets/sfx_grow.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrShoot, "../assets/sfx_shoot.wav" ) )
+                success = false;
+            if ( !loadSound(sfx_pwrMulti, "../assets/sfx_multi.wav" ) )
+                success = false;
         }
 
         //Render text
@@ -509,12 +557,6 @@ class GameLoop : public GameState
 
     void goNextLevel(){
 
-        // Increment and load next level
-        if (currentLev > MAX_LEVEL)
-            currentLev = 0;
-        CSVread(levelArray[currentLev]);
-        currentLev++;
-
         // Clear all balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
             delete balls[i];
@@ -525,12 +567,21 @@ class GameLoop : public GameState
         balls.push_back(new Ball());
         resetBall(balls[0]);
 
+        // Reset all powerups unless defined otherwise in settings
         if (!f_keepPwrUps){
             piercing = false;
             catching = false;
             lasers = false;
         }
 
+        // Load the next level and then increment for next time.
+        // If the value of the next level exceeds max value, reset the value to 0 before loading.
+        if (currentLev > MAX_LEVEL)
+            currentLev = 0;
+        CSVread(levelArray[currentLev]);
+        currentLev++;
+
+        // Initialize a vector of brick objects as a formation specified by CSVRead function
         int k = 0;
         for (int j = 0; j < NUM_ROWS; j++){
             for (int i = 0; i < NUM_COLS; i++){
@@ -552,16 +603,20 @@ class GameLoop : public GameState
 
     void resetBall(Ball *thisBall){
 
+        // Reset speed index and hit count for new ball/life
         hitCount = 0;
         speedIndex = SPEED_INDEX_DEFAULT;
+
+        // Use the new index value to calculate/reset paddle hit divider and launch velocity
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
-        thisBall->storeVel(yLaunchVel/4,-yLaunchVel);
 
+        // Store the launch velocity and assign "stucky" status to ball for initial serve
+        thisBall->storeVel(yLaunchVel/4,-yLaunchVel);
         thisBall->setStuck(true);
-        //TODO: Revisit "Sticky" Functions
+
+        // Obtain the current location of the paddle and set the ball's position at the middle
         tempDim = player.getDim();
-        //offsetPB = tempDim.w/2;
         offsetPB = thisBall->setOffset(tempDim.w/2);
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
     }
@@ -569,7 +624,7 @@ class GameLoop : public GameState
     // Function to handle hit detection between a ball specified by a pointer, and all bricks on the playing field
     void hitDetection(Ball *thisBall){
 
-        // Temp Variables
+        // Temp Variables used for hit detection calculations
         SDL_Point   ballVel = thisBall->getVel();
         SDL_Rect    ballNextPos = thisBall->getDim();
         SDL_Rect    ballDim = thisBall->getDim();
@@ -613,7 +668,7 @@ class GameLoop : public GameState
                 // Resolve outcome for the brick which was hit depending on its type
                 wallHit(i);
 
-                // Increment total Hit Count
+                // Increment total Hit Count for other purposes such as gradual speed increase
                 hitTracker(1);
             }
         }
@@ -637,7 +692,6 @@ class GameLoop : public GameState
                 }
             }
         }
-
 
         // Top edge of field
         if ( ( ballDim.y < field.y ) && ( ballVel.y < 0 ) ) {
@@ -664,6 +718,11 @@ class GameLoop : public GameState
         SDL_Rect brickDim;
         bool destroy = false;
 
+        // Handler routine conditional on the type of brick which was hit.
+        // Dark and grey bricks take "damage" by shifting to a lighter variant
+        // All other bricks are marked for distruction on impact.
+        // If the piercing powerup is active, the brick is marked to be destroyed
+        // and points are awarded based on how many hits the brick type could sustain.
         switch (wall[index]->getType()){
             case BRICK_GRAY:
                 if (piercing){
@@ -676,7 +735,6 @@ class GameLoop : public GameState
                     wall[index]->setType(BRICK_WHITE);
                     addPoints(10);
                 }
-
             break;
             case BRICK_DARK:
                 if (piercing){
@@ -697,6 +755,7 @@ class GameLoop : public GameState
             break;
         }
 
+        // Routine to handle brick destruction. Brick dimensions are saved for pickup spawning
         if (destroy){
             brickDim = wall[index]->getDim();
             delete wall[index];
@@ -726,30 +785,36 @@ class GameLoop : public GameState
         }
     }
 
+    // Function for handling full behavior pattern of a laser object.
     void laserHandling(Bullet *laser){
 
+        // Update the laser's position and register its new dimensions
         laser->move();
-
         SDL_Rect laserDim = laser->getDim();
 
+        // Check if the laser collided with any of the bricks on the field
         for (int i = wall.size()-1; i >= 0 ; i--){
             if (wall[i]->checkCollision(laserDim) == true) {
 
-                // Resolve outcome for the brick which was hit depending on its type
+                // If a collision occurs ,resolve outcome for the brick depending on its type
                 wallHit(i);
 
+                // Mark the laser for destruction unless the piercing power up is active
                 if (!piercing)
                     laser->setAlive( false );
             }
         }
 
-        if (laserDim.y < SCOREBOARD_HEIGHT)
+        // Lasers are always marked for destruction upon leaving the field
+        if (laserDim.y + laserDim.h < SCOREBOARD_HEIGHT)
             laser->setAlive( false );
 
     }
 
+    // Function which handles the minutiae associated with scoring
     void addPoints(int p){
 
+        // Do not bother with this function if scoring is disabled in options
         if (!f_scoreEnable)
             return;
 
@@ -762,7 +827,7 @@ class GameLoop : public GameState
         if (f_infiniteLives)
             return;
 
-        // If score increments past SCORE_LIFEUP threshold, add an extra live
+        // If score increments past SCORE_LIFEUP threshold, add an extra life
         if ( (score / SCORE_LIFEUP) > (tempScore / SCORE_LIFEUP) ){
             lives++;
             playSound( -1, sfx_lifeUp , 0 );
@@ -1092,6 +1157,14 @@ class GameLoop : public GameState
                             pickup = NULL;
                         }
 
+                        f_ShowInfo = false;
+                        f_InfoFade = false;
+                        delayTimer.stop();
+
+
+                        while (delayTimer.getTicks() < 1000) {}
+                        delayTimer.stop();
+
                         if (!f_infiniteLives){
                             lives--;
                             livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
@@ -1102,10 +1175,13 @@ class GameLoop : public GameState
                             f_GameOver = true;
                         }
                         else {
-                            balls.push_back(new Ball());
-                            resetBall(balls[0]);
 
-                            // Reset Paddle Width
+                            infoTextTexture.loadFromRenderedText( updateText("Get Ready..."), textColor);
+                            f_newServe = true;
+                            f_ShowInfo = true;
+                            delayTimer.start();
+
+                            // Reset Paddle Width and hit division properties
                             SDL_Rect tempDim = player.getDim();
                             tempDim.w = PADDLE_WIDTH;
                             player.setDim(tempDim);
@@ -1296,6 +1372,15 @@ class GameLoop : public GameState
 
         //--- Gamestate flags ---//
 
+        if (f_newServe){
+            if (delayTimer.getTicks() > DELAY_TIME/2){
+                infoTextTexture.loadFromRenderedText( updateText("Serve!"), textColor);
+                f_newServe = false;
+                balls.push_back(new Ball());
+                resetBall(balls[0]);
+            }
+        }
+
         if (f_ShowInfo){
 
             if (f_InfoFade) {
@@ -1328,7 +1413,6 @@ class GameLoop : public GameState
 
     void render(){
 
-
         // Set background color and fill
         SDL_SetRenderDrawColor( gRenderer, bgR, bgG, bgB, 0xFF );
         SDL_RenderFillRect(gRenderer, &field);
@@ -1360,11 +1444,8 @@ class GameLoop : public GameState
 
         // Update Text color and render
         // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
-
-
         scoreTextTexture.setColor(spR, spG, spB);
         scoreTextTexture.render(5, 1 );
-
 
         livesTextTexture.setColor(spR, spG, spB);
         livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );
