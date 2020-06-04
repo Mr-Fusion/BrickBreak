@@ -18,7 +18,6 @@ Breakout TODO:
 - General Balancing
 	* What should be the min/max ball speed [Need to playtest]
 - Miscellaneous
-	* Improve transitions (Game start, lose ball, game over, etc)
 	* Code Cleanup/Refactoring
 
 

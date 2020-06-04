@@ -350,9 +350,9 @@ class GameLoop : public GameState
         printf("CSVRead Complete\n");
     }
 
-    bool loadSound(Mix_Chunk *chunk, std::string path){
+    bool loadSound(Mix_Chunk **chunk, std::string path){
         bool success = true;
-        chunk = Mix_LoadWAV(path);
+        *chunk = Mix_LoadWAV(path.c_str());
         if ( chunk == NULL) {
             printf( "Failed to load %s! SDL_mixer Error: %s\n", path, Mix_GetError() );
             success = false;
@@ -360,7 +360,6 @@ class GameLoop : public GameState
         return success;
     }
 
-    //TODO: Can we streamline the sprite sheet creation into a function?
     bool loadMedia()
     {
         //Loading success flag
@@ -368,165 +367,43 @@ class GameLoop : public GameState
 
         //Load sound effects
         if (f_soundEnable == true) {
-            /*
-            sfx_pwrPnts = Mix_LoadWAV( "../assets/sfx_coin_double4.wav" );
-            if( sfx_pwrPnts == NULL )
-            {
-                printf( "Failed to load sound effect 1! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrPnts,"../assets/sfx_coin_double4.wav" ) )
                 success = false;
-            }
-
-            sfx_ballMiss = Mix_LoadWAV( "../assets/sfx_damage_hit3.wav" );
-            if( sfx_ballMiss == NULL )
-            {
-                printf( "Failed to load sound effect 2! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_ballMiss, "../assets/sfx_damage_hit3.wav" ) )
                 success = false;
-            }
-
-            sfx_lastBallMiss = Mix_LoadWAV( "../assets/sfx_exp_various6.wav" );
-            if( sfx_lastBallMiss == NULL )
-            {
-                printf( "Failed to load sound effect 3! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_lastBallMiss, "../assets/sfx_exp_various6.wav" ) )
                 success = false;
-            }
-
-            sfx_brickHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip2.wav" );
-            if( sfx_brickHit == NULL )
-            {
-                printf( "Failed to load sound effect 4! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_brickHit, "../assets/sfx_sounds_Blip2.wav" ) )
                 success = false;
-            }
-
-            sfx_wallHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip7.wav" );
-            if( sfx_wallHit == NULL )
-            {
-                printf( "Failed to load sound effect 5! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_wallHit, "../assets/sfx_sounds_Blip7.wav" ) )
                 success = false;
-            }
-            sfx_paddleHit = Mix_LoadWAV( "../assets/sfx_sounds_Blip9.wav" );
-            if( sfx_paddleHit == NULL )
-            {
-                printf( "Failed to load sound effect 6! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_paddleHit, "../assets/sfx_sounds_Blip9.wav" ) )
                 success = false;
-            }
-            sfx_brickDestroy = Mix_LoadWAV( "../assets/sfx_sounds_Blip7.wav" ); //Blip11
-            if( sfx_brickDestroy == NULL )
-            {
-                printf( "Failed to load sound effect 7! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_brickDestroy, "../assets/sfx_sounds_Blip7.wav" ) )
                 success = false;
-            }
-            sfx_pwrShrink = Mix_LoadWAV( "../assets/sfx_shift_down.wav" );
-            if( sfx_pwrShrink == NULL )
-            {
-                printf( "Failed to load sound effect 8! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrShrink, "../assets/sfx_shift_down.wav" ) )
                 success = false;
-            }
-            sfx_pauseIn = Mix_LoadWAV( "../assets/sfx_sounds_pause1_in.wav" );
-            if( sfx_pauseIn == NULL )
-            {
-                printf( "Failed to load sound effect 9! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pauseIn, "../assets/sfx_sounds_pause1_in.wav" ) )
                 success = false;
-            }
-            sfx_pauseOut = Mix_LoadWAV( "../assets/sfx_sounds_pause1_out.wav" );
-            if( sfx_pauseOut == NULL )
-            {
-                printf( "Failed to load sound effect 10! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pauseOut, "../assets/sfx_sounds_pause1_out.wav" ) )
                 success = false;
-            }
-            sfx_pwrPierce = Mix_LoadWAV( "../assets/sfx_shift_up.wav" );
-            if( sfx_pwrPierce == NULL )
-            {
-                printf( "Failed to load sound effect 11! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrPierce, "../assets/sfx_shift_up.wav" ) )
                 success = false;
-            }
-            sfx_laserShot = Mix_LoadWAV( "../assets/sfx_laser.wav" );
-            if( sfx_laserShot == NULL )
-            {
-                printf( "Failed to load sound effect 12! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_laserShot, "../assets/sfx_laser.wav" ) )
                 success = false;
-            }
-
-            sfx_pwrSpeedUp = Mix_LoadWAV( "../assets/sfx_speed_up.wav" );
-            if( sfx_pwrSpeedUp == NULL )
-            {
-                printf( "Failed to load sound effect 13! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrSpeedUp, "../assets/sfx_speed_up.wav" ) )
                 success = false;
-            }
-            sfx_pwrSpeedDown = Mix_LoadWAV( "../assets/sfx_speed_down.wav" );
-            if( sfx_pwrSpeedDown == NULL )
-            {
-                printf( "Failed to load sound effect 14! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrSpeedDown, "../assets/sfx_speed_down.wav" ) )
                 success = false;
-            }
-            sfx_lifeUp = Mix_LoadWAV( "../assets/sfx_life_up.wav" );
-            if( sfx_lifeUp == NULL )
-            {
-                printf( "Failed to load sound effect 15! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_lifeUp, "../assets/sfx_life_up.wav" ) )
                 success = false;
-            }
-
-            sfx_pwrCatch = Mix_LoadWAV( "../assets/sfx_catch.wav" );
-            if( sfx_pwrCatch == NULL )
-            {
-                printf( "Failed to load sound effect 16! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrCatch, "../assets/sfx_catch.wav" ) )
                 success = false;
-            }
-            sfx_pwrGrow = Mix_LoadWAV( "../assets/sfx_grow.wav" );
-            if( sfx_pwrGrow == NULL )
-            {
-                printf( "Failed to load sound effect 17! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrGrow, "../assets/sfx_grow.wav" ) )
                 success = false;
-            }
-            sfx_pwrShoot = Mix_LoadWAV( "../assets/sfx_shoot.wav" );
-            if( sfx_lifeUp == NULL )
-            {
-                printf( "Failed to load sound effect 18! SDL_mixer Error: %s\n", Mix_GetError() );
+            if ( !loadSound(&sfx_pwrShoot, "../assets/sfx_shoot.wav" ) )
                 success = false;
-            }
-            sfx_pwrMulti = Mix_LoadWAV( "../assets/sfx_multi.wav" );
-            if( sfx_lifeUp == NULL )
-            {
-                printf( "Failed to load sound effect 19! SDL_mixer Error: %s\n", Mix_GetError() );
-                success = false;
-            }
-            */
-            if ( !loadSound(sfx_pwrPnts,"../assets/sfx_coin_double4.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_ballMiss, "../assets/sfx_damage_hit3.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_lastBallMiss, "../assets/sfx_exp_various6.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_brickHit, "../assets/sfx_sounds_Blip2.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_wallHit, "../assets/sfx_sounds_Blip7.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_paddleHit, "../assets/sfx_sounds_Blip9.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_brickDestroy, "../assets/sfx_sounds_Blip7.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrShrink, "../assets/sfx_shift_down.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pauseIn, "../assets/sfx_sounds_pause1_in.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pauseOut, "../assets/sfx_sounds_pause1_out.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrPierce, "../assets/sfx_shift_up.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_laserShot, "../assets/sfx_laser.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrSpeedUp, "../assets/sfx_speed_up.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrSpeedDown, "../assets/sfx_speed_down.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_lifeUp, "../assets/sfx_life_up.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrCatch, "../assets/sfx_catch.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrGrow, "../assets/sfx_grow.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrShoot, "../assets/sfx_shoot.wav" ) )
-                success = false;
-            if ( !loadSound(sfx_pwrMulti, "../assets/sfx_multi.wav" ) )
+            if ( !loadSound(&sfx_pwrMulti, "../assets/sfx_multi.wav" ) )
                 success = false;
         }
 
@@ -1159,10 +1036,6 @@ class GameLoop : public GameState
 
                         f_ShowInfo = false;
                         f_InfoFade = false;
-                        delayTimer.stop();
-
-
-                        while (delayTimer.getTicks() < 1000) {}
                         delayTimer.stop();
 
                         if (!f_infiniteLives){
