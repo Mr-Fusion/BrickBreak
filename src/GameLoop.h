@@ -311,33 +311,48 @@ class GameLoop : public GameState
         balls.clear();
     }
 
+    // Function to read in level data from a CSV file and store the values in an array.
+    // Levels in Brickbreaker are saved as CSV files in the assets subdirectory, named "roundX"
+    // where X is an integer corresponding to the numerical ordering of the level.
+    // Each value within the CSV file is expected to be an integer between 0 and 9,
+    // corresponding to the BRICK_TYPE enumeration within Brick.h.
+    // The spatial arrangement of each integer within the CSV file
+    // corresponds with the desired layout of the bricks in the level to be loaded.
+    // TODO: This function should be more flexible and robust. Look into exception and graceful error handling.
     void CSVread(int level)
     {
         std::ifstream fin;
         std::string line;
         std::stringstream result;
 
+        // Construct the string of the filepath to be loaded, based on the "level" integer input
         result.str( "" );
         result << "../assets/round" << level << ".csv";
 
-        // Open an existing file
+        // Open the specified file
         fin.open(result.str());
 
-        // Clear "result" in preparation for reading the file
+        // Clear "result" stream in preparation for reading/parsing the file
         result.clear();
         result.str( "" );
         
+        // Read each line of the CSV as a string from the input stream
+        // and write it to the "result" stream.
+        // Each line is separated by spaces.
         while(!fin.eof()){
             fin>>line;
             result<<line<<" ";
         }
+
+        // Append null terminator to stringstream and copy the result into myString
         result<<"\0";
         std::string myString = result.str();
 
+        // Iterate through mystring and convert every character between '0' and '9' into an integer.
+        // Store each integer in the brickmap array to be used in level loading
         int i = 0;
         int j = 0;
         char myChar = NULL;
-        int value = 0;
         while (myString[i] != '\0'){
             if (myString[i] >= '0' && myString[i] <= '9'){
                 myChar = myString[i];
@@ -346,10 +361,9 @@ class GameLoop : public GameState
             }
             i++;
         }
-
-        printf("CSVRead Complete\n");
     }
 
+    // Function which streamlines the loading of sound chunks.
     bool loadSound(Mix_Chunk **chunk, std::string path){
         bool success = true;
         *chunk = Mix_LoadWAV(path.c_str());
@@ -407,19 +421,20 @@ class GameLoop : public GameState
                 success = false;
         }
 
-        //Render text
+        //Render initial text
         livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
-
         infoTextTexture.loadFromRenderedText( updateText("Round: ", currentLev), textColor);
 
         return success;
     }
 
+    // Generic function for playing SDL_Mixer sound chunks
     void playSound(int channel, Mix_Chunk *sound, int loops){
         if (sound != NULL)
             Mix_PlayChannel( channel, sound , loops );
     }
 
+    // Generic function for updating text strings with integers potentially appended at the end
     std::string updateText(std::string text, int num = -1){
         std::stringstream result;
 
@@ -432,6 +447,7 @@ class GameLoop : public GameState
         return result.str();
     }
 
+    // Function routine for transitioning to next level
     void goNextLevel(){
 
         // Clear all balls
@@ -451,7 +467,7 @@ class GameLoop : public GameState
             lasers = false;
         }
 
-        // Load the next level and then increment for next time.
+        // Load the next level and then increment "currentLev" for next time.
         // If the value of the next level exceeds max value, reset the value to 0 before loading.
         if (currentLev > MAX_LEVEL)
             currentLev = 0;
@@ -475,9 +491,9 @@ class GameLoop : public GameState
 
         // Set countdown to hide level text some time after level begins
         delayTimer.start();
-
     }
 
+    // Function for initializing first ball after all balls are lost or level transitions
     void resetBall(Ball *thisBall){
 
         // Reset speed index and hit count for new ball/life
@@ -590,6 +606,8 @@ class GameLoop : public GameState
 
     }
 
+    // Function for resolving outcome of a specified brick on the playing field being hit.
+    // Can be called for both ball and laser collisions
     void wallHit(int index){
 
         SDL_Rect brickDim;
@@ -640,14 +658,15 @@ class GameLoop : public GameState
 
 
             // Roll for spawning a pickup from eliminated brick
-            // If the roll is unsuccessful, increase the likelihood for next time
+            // If the roll is successful, spawn the pickup and randomly determine next initial pickup rate
+            // If the roll is unsuccessful, gradually increase the likelihood for next time
             if ( ( rand() % pickupRate ) >= 10){
                 if (pickup == NULL){
                     if (f_multiMode)
                         pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y, PICKUP_MULTI);
                     else
                         pickup = new Pickup(brickDim.x + brickDim.w/2 - PICKUP_SIZE/2,brickDim.y);
-                    
+
                     pickupRate = (rand() % DEFAULT_LUCK) + 1;
                 }
             }
@@ -681,7 +700,6 @@ class GameLoop : public GameState
                     laser->setAlive( false );
             }
         }
-
         // Lasers are always marked for destruction upon leaving the field
         if (laserDim.y + laserDim.h < SCOREBOARD_HEIGHT)
             laser->setAlive( false );
@@ -701,6 +719,7 @@ class GameLoop : public GameState
         // Update Score Display texture
         scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
 
+        // Do not bother with extra lives if infinite lives are enabled
         if (f_infiniteLives)
             return;
 
@@ -712,6 +731,7 @@ class GameLoop : public GameState
         }
     }
 
+    // Function for incrementing and tracking hit count based on a specified integer value
     void hitTracker(int h){
         int tempCount = hitCount;
         hitCount += h;
@@ -719,13 +739,13 @@ class GameLoop : public GameState
         // If score increments past speedup threshold, increase speed
         if ( (hitCount / speedupThresh) > (tempCount / speedupThresh) )
             speedUp();
-
-        printf("Hit Count is: %d\n",hitCount);
     }
 
+    // Function for increasing speed of all ball objects
     void speedUp(){
         SDL_Point tempVel;
 
+        // Increase the velocity of all active balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
             tempVel = balls[i]->getVel();
 
@@ -742,19 +762,20 @@ class GameLoop : public GameState
             balls[i]->setVel(tempVel.x, tempVel.y);
         }
 
+        // Increase the speed index and update paddle hit divider and launch Y-Velocity.
+        // This will ultimately increase the speed of balls which may be stuck to the paddle.
         if (speedIndex < SPEED_INDEX_MAX)
             speedIndex++;
 
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
-
-        printf("Speed up! Index is now %d\n",speedIndex);
-
     }
 
+    // Function for decreasing speed of all ball objects
     void slowDown(){
         SDL_Point tempVel;
 
+        // Decrease the velocity of all active balls
         for (int i = balls.size() - 1; i >= 0 ; i--){
             tempVel = balls[i]->getVel();
 
@@ -771,13 +792,13 @@ class GameLoop : public GameState
             balls[i]->setVel(tempVel.x, tempVel.y);
         }
 
+        // Decrease the speed index and update paddle hit divider and launch Y-Velocity.
+        // This will ultimately decrease the speed of balls which may be stuck to the paddle.
         if (speedIndex > SPEED_INDEX_MIN)
             speedIndex--;
 
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
         yLaunchVel  = BALL_VELOCITY + speedIndex;
-
-        printf("Slow down! Index is now %d\n",speedIndex);
     }
 
     ///Handles Player input
@@ -785,33 +806,15 @@ class GameLoop : public GameState
 
         int x, y;
         SDL_Rect tempDim = player.getDim();
-/*
-        int x, y;
-
-        //Get mouse position
-        if( e->type == SDL_MOUSEMOTION ){
-            SDL_GetMouseState( &x, &y );
-            //lPaddle.x = x;
-        lPaddle.y = y - (lPaddle.h/2);
-            if ( y > SCREEN_HEIGHT - lPaddle.h/2 )
-                lPaddle.y = SCREEN_HEIGHT - lPaddle.h;
-            if ( y < lPaddle.h/2 )
-                lPaddle.y = 0;
-        }
-
-
-        if( e->button.button == SDL_BUTTON_RIGHT && e->type == SDL_MOUSEBUTTONUP ){
-            set_next_state(STATE_MENU);
-        }
-*/
 
         //Get mouse position
         if( e->type == SDL_MOUSEMOTION ){
             if (!f_paused){
                 SDL_GetMouseState( &x, &y );
-                
                 tempDim.x = x - tempDim.w/2;
 
+                // Set the-x position of the paddle such that it is centered on the mouse's x-position,
+                // but prohibit any part of the paddle from travelling beyond the dimensions of the screen.
                 if ( x > SCREEN_WIDTH - tempDim.w/2 )
                     tempDim.x = SCREEN_WIDTH - tempDim.w;
                 if ( x < tempDim.w/2 )
@@ -821,6 +824,7 @@ class GameLoop : public GameState
             }
         }
 
+        // Left mouse button controls action input
         if( e->button.button == SDL_BUTTON_LEFT && e->type == SDL_MOUSEBUTTONDOWN ){
             spInput = true;
         }
@@ -828,79 +832,30 @@ class GameLoop : public GameState
             spInput = false;
         }
 
-        if( e->button.button == SDL_BUTTON_RIGHT && e->type == SDL_MOUSEBUTTONUP ){
-            set_next_state(STATE_MENU);
-        }
-
-        if (e->type == SDL_KEYDOWN) {
-            switch (e->key.keysym.sym) {
-                case SDLK_a:
-                    lInput = true;
-                break;
-
-                case SDLK_d:
-                    rInput = true;
-                break;
-
-                case SDLK_w:
-                    uInput = true;
-                break;
-
-                case SDLK_s:
-                    dInput = true;
-                break;
-                case SDLK_SPACE:
-                    spInput = true;
-                break;
-                case SDLK_ESCAPE:
-                    //
-                break;
-            }
-        }
-
+        // Escape key pauses and unpauses the game.
+        // Only triggers on key release to prevent accidental pause toggling.
         if (e->type == SDL_KEYUP) {
             switch (e->key.keysym.sym) {
-                case SDLK_a:
-                    lInput = false;
-                break;
 
-                case SDLK_d:
-                    rInput = false;
-                break;
-
-                case SDLK_w:
-                    uInput = false;
-                break;
-
-                case SDLK_s:
-                    dInput = false;
-                break;
-                case SDLK_SPACE:
-                    spInput = false;
-                break;
                 case SDLK_ESCAPE:
-
-                    if (f_GameOver) {
-                        set_next_state(STATE_MENU);
+                    if (f_paused){
+                        playSound( -1, sfx_pauseOut, 0 );
+                        f_paused = false;
+                        delayTimer.unpause();
+                        f_ShowInfo = false;
                     }
-                    else {
-                        if (f_paused){
-                            playSound( -1, sfx_pauseOut, 0 );
-                            f_paused = false;
-                            delayTimer.unpause();
-
-                            f_ShowInfo = false;
-                        }
-                        else{
-                            playSound( -1, sfx_pauseIn, 0 );
-                            f_paused = true;
-                            delayTimer.pause();
-
-                            infoTextTexture.loadFromRenderedText( updateText("Paused"), textColor);
-                            f_ShowInfo = true;
-                        }
+                    else{
+                        playSound( -1, sfx_pauseIn, 0 );
+                        f_paused = true;
+                        delayTimer.pause();
+                        infoTextTexture.loadFromRenderedText( updateText("Paused"), textColor);
+                        f_ShowInfo = true;
                     }
+                break;
 
+                // Backspace ends the game and returns to main menu
+                case SDLK_BACKSPACE:
+                    set_next_state(STATE_MENU);
                 break;
             }
         }
@@ -922,6 +877,8 @@ class GameLoop : public GameState
             // Register player dimensions
             SDL_Rect playerDim = player.getDim();
 
+            // If laser powerup is active, the action input is pressed, and no other lasers exist,
+            // Two lasers are spawned from each end of the paddle.
             if (lasers) {
                 if (spInput) {
                     if ( laserA == NULL && laserB == NULL ){
@@ -932,6 +889,7 @@ class GameLoop : public GameState
                 }
             }
 
+            // Laser handling routines for both lasers. Destroy either laser if they are marked for destruction
             if (laserA != NULL) {
                 laserHandling(laserA);
 
@@ -950,15 +908,17 @@ class GameLoop : public GameState
                 }
             }
 
-            // Create structure for ball dimensions
+            // Create structures for ball dimensions and hit velocity
             SDL_Rect ballDim;
+            SDL_Point hitVel;
             
+            // Evaluate logic for each active ball
             for (int i = 0; i < balls.size(); i++){
 
                 // Handle collisions between ball(s) and brick(s)/playing field
                 hitDetection(balls[i]);
 
-                // Ball Logic
+                // Update ball position
                 if (!f_LevelComplete){
                      balls[i]->move();
                 }
@@ -967,41 +927,35 @@ class GameLoop : public GameState
                 ballDim = balls[i]->getDim();
 
                 // Handle collision between ball and paddle
-
                 if (player.checkCollision(ballDim) && balls[i]->getVel().y > 0){
-                    // TODO: Can offsetPB be moved?
-                    /*offsetPB = */balls[i]->setOffset(ballDim.x - playerDim.x);
 
+                    // Register the relative X-offset of where the ball collided with the paddle
+                    balls[i]->setOffset(ballDim.x - playerDim.x);
+
+                    // Calculate the offset between the center of the ball and center of the paddle during collision.
                     int hitSpeed = ballDim.x + ballDim.w/2 - ( playerDim.x + playerDim.w/2);
 
-                    // If the paddle is "sticky", stop the ball and enable the "stuck" routine below
+                    // Calculate horizontal velocity as a function of the hitspeed and the width/hitDivision of the paddle
+                    if ( hitSpeed> 0)
+                        hitVel.x = ( hitSpeed + (playerDim.w / paddleHitDiv) ) / ( playerDim.w / paddleHitDiv );
+                    else
+                        hitVel.x = ( hitSpeed - (playerDim.w / paddleHitDiv) ) / ( playerDim.w / paddleHitDiv );
+
+                    // Vertical velocity is relatively fixed based on the speed index.
+                    hitVel.y = -yLaunchVel;
+
+                    // If "catching" power up is enabled, stop the ball, calculate and store and mark it as stuck
                     if (catching){
-
-                        if ( hitSpeed> 0)
-                            balls[i]->storeVel( ( hitSpeed + (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
-                        else
-                            balls[i]->storeVel( ( hitSpeed - (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
-
-                        playSound( -1, sfx_wallHit , 0 );
-                        balls[i]->setVel(0,0);
+                        balls[i]->setVel(0,0);      
+                        balls[i]->storeVel( hitVel.x, hitVel.y);
                         balls[i]->setStuck(true);
+                        playSound( -1, sfx_wallHit , 0 );
                     }
-                    // Otherwise, calculate the new horizontal trajectory of the ball
-                    // based on the offset between the middle of the paddle and the point of collision.
-                    // A larger offset results in a wider horizontal trajectory
+                    // Otherwise, simply update the ball with the new velocity
                     else {
-                        
-                        // TODO: condense these lines to a "LaunchBall" function
-                        //hitSpeed = ballDim.x - ( playerDim.x + playerDim.w/2);
-
+                        balls[i]->setVel( hitVel.x, hitVel.y);
                         playSound( -1, sfx_paddleHit , 0 );
-
-                        if ( hitSpeed> 0)
-                            balls[i]->setVel( ( hitSpeed + (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
-                        else
-                            balls[i]->setVel( ( hitSpeed - (playerDim.w / paddleHitDiv) ) / (playerDim.w / paddleHitDiv) , -yLaunchVel );
                     }
-                    
                 }
 
                 // Ball Stuck Logic
@@ -1011,44 +965,50 @@ class GameLoop : public GameState
                     balls[i]->setPos(playerDim.x + balls[i]->getOffset(), playerDim.y - ballDim.h );
 
                     // Release the ball if space input is asserted.
-                    // Trajectory is calculated in a similar manner as a regular paddle collision
                     if (spInput){
-                        // TODO: condense these lines to a "LaunchBall" function
-                        playSound( -1, sfx_paddleHit , 0 );
                         balls[i]->releaseVel();
                         balls[i]->setStuck(false);
+                        playSound( -1, sfx_paddleHit , 0 );
                     }
                 }
 
-                // Missed ball logic
+                // Missed ball logic. If it trevels of the bottom of the screen:
                 if  ( ballDim.y > SCREEN_HEIGHT + 10 ) {
                     
+                    // Delete a ball and remove it from the ball vector
                     delete balls[i];
                     balls.erase(balls.begin()+i);
 
+                    // If there are no remaining balls in the vector
                     if (balls.size() == 0){
+
+                        // Play a harsh penalty SFX
                         playSound( -1, sfx_lastBallMiss , 0 );
 
+                        // Clear the playing field of any pickups which may be active
                         if (pickup != NULL){
                             delete pickup;
                             pickup = NULL;
                         }
 
+                        // Hide any info messages which may be displayed, and reset the delayTimer.
                         f_ShowInfo = false;
                         f_InfoFade = false;
                         delayTimer.stop();
 
+                        // Remove one life and update the lives HUD text
                         if (!f_infiniteLives){
                             lives--;
                             livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
                         }
 
+                        // If there are no remaining lives, the game is over
                         if (lives == 0){
                             infoTextTexture.loadFromRenderedText( updateText("Game Over"), textColor);
                             f_GameOver = true;
                         }
+                        // Otherwise, prepare to serve the next ball
                         else {
-
                             infoTextTexture.loadFromRenderedText( updateText("Get Ready..."), textColor);
                             f_newServe = true;
                             f_ShowInfo = true;
@@ -1059,13 +1019,13 @@ class GameLoop : public GameState
                             tempDim.w = PADDLE_WIDTH;
                             player.setDim(tempDim);
 
-                            // Clear Powerups
+                            // Clear all powerup effects
                             piercing = false;
                             catching = false;
                             lasers = false;
                         }
                     }
-                    else //balls.size() != 0
+                    else // If there are other active balls when one is missed, play a lighter penalty SFX
                         playSound( -1, sfx_ballMiss , 0 );
                 }
             }
@@ -1090,7 +1050,6 @@ class GameLoop : public GameState
                                 infoTextTexture.loadFromRenderedText( updateText("Bonus Points"), textColor);
                             break;
 
-                            // TODO: Fix catch handling for multiple balls
                             case PICKUP_CATCH:
 
                                 catching = true;
