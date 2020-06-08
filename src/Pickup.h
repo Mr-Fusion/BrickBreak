@@ -126,5 +126,11 @@ class Pickup : public GameEntity
         }
     }
 
+    void randomizeColor(){
+        r = rand() % 0xFF;
+        g = rand() % 0xFF;
+        b = rand() % 0xFF;
+    }
+
 };
 #endif // PICKUP_H_INCLUDED

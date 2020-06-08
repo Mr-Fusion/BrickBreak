@@ -14,13 +14,13 @@ extern TTF_Font *gFont = NULL;
 
 #define TITLE				"BrickBreak"
 
-#define MAJOR_REV           0
-#define MINOR_REV           4
-#define INCREMENTAL_REV     5
+#define MAJOR_REV           1
+#define MINOR_REV           0
+#define INCREMENTAL_REV     0
 
 //Screen dimension constants
-#define SCREEN_WIDTH        528//640
-#define SCREEN_HEIGHT       720//480
+#define SCREEN_WIDTH        528
+#define SCREEN_HEIGHT       720
 #define SCREEN_FPS          60
 
 const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;

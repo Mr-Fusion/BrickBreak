@@ -16,11 +16,6 @@ class Menu : public GameState
     bool retInput = false;
     bool subMenu = false;
     int curSelection = -1;
-/*
-    bool sfxEnable = true;
-    bool multiEnable = false;
-    int difficulty = DIFFY_NORM;
-*/
 
     LButton buttonA;
     LButton buttonB;
@@ -272,36 +267,7 @@ class Menu : public GameState
         buttonC.handleEvent(e);
         buttonD.handleEvent(e);
         buttonE.handleEvent(e);
-/*
-        if (subMenu){
-            size = SETTINGS_SIZE;
-        }
-        else {
-            size = MENU_SIZE;
-        }
 
-        if (e->type == SDL_KEYDOWN) {
-            switch (e->key.keysym.sym) {
-                case SDLK_SPACE:
-                    playSound( -1, sfx_select , 0 );
-                    retInput = true;
-                break;
-                case SDLK_w:
-                    playSound( -1, sfx_browse , 0 );
-                    curSelection--;
-                    if (curSelection < 0)
-                        curSelection = size - 1;
-                break;
-
-                case SDLK_s:
-                    playSound( -1, sfx_browse , 0 );
-                    curSelection++;
-                    if (curSelection >= size )
-                        curSelection = 0;
-                break;
-            }
-        }
-        */
     }
 
     bool toggleYNText(LTexture *text, bool flag) {

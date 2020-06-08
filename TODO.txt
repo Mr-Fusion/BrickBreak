@@ -15,10 +15,6 @@ Breakout TODO:
 		~ Different texture/Icons (For colorblind players)
 - Special effects?
 	* particles/animations?
-- General Balancing
-	* What should be the min/max ball speed [Need to playtest]
-- Miscellaneous
-	* Code Cleanup/Refactoring
 
 
 Known Bugs:

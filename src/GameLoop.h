@@ -21,22 +21,21 @@
 #include "Bullet.h"
 
 #define DEFAULT_LIVES       3
+#define DEFAULT_LUCK        8
+
 #define NUM_ROWS            18
 #define NUM_COLS            11
 #define NUM_BRICKS          NUM_ROWS * NUM_COLS
-#define DEFAULT_LUCK        8
 
 #define PADDLE_WIDTH_MOD    20
-#define PADDLE_HIT_DIVIDER  6//10
+#define PADDLE_HIT_DIVIDER  6
 
-#define SPEED_INDEX_MAX     6//4
-#define SPEED_INDEX_MIN     0//-2
+#define SPEED_INDEX_MAX     6
+#define SPEED_INDEX_MIN     0
 #define SPEED_INDEX_DEFAULT 3
 
-#define XVEL_MIN            1
-#define XVEL_MAX            8
-
-#define SCORE_LIFEUP        5000
+#define BASE_POINTS         10
+#define SCORE_LIFEUP_BASE   20000
 
 #define SCOREBOARD_WIDTH    SCREEN_WIDTH
 #define SCOREBOARD_HEIGHT   60
@@ -50,13 +49,16 @@ class GameLoop : public GameState
 
     // Gameplay Stats/Values
     int currentLev = 0;
-    int lives = 0;
+    int lives = DEFAULT_LIVES;
     int score = 0;
     int hitCount = 0;
-    int paddleHitDiv = 10;
-    int speedIndex = SPEED_INDEX_DEFAULT;
+    int pickupRate = DEFAULT_LUCK;
+    int baseSpeed = SPEED_INDEX_DEFAULT;
+    int speedIndex = baseSpeed;
+    int paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;;
     int speedupThresh = 15;
     int yLaunchVel = BALL_VELOCITY + speedIndex;
+    int lifeUpThresh = SCORE_LIFEUP_BASE;
 
     // Gameplay Event Flags
     bool f_ShowInfo = false;
@@ -96,9 +98,6 @@ class GameLoop : public GameState
     int tmpR, tmpG, tmpB;
 
     SDL_Color textColor = { spR, spG, spB, 0xFF};
-
-    // In memory text stream (REMOVE?)
-    std::stringstream msgText;
 
     // Scene textures
     LTexture livesTextTexture;
@@ -142,21 +141,19 @@ class GameLoop : public GameState
     std::vector<int> levelArray;
 
     // Temp variables
-    int offsetPB;
-
-    int pickupRate = 0;
     int brickMap[NUM_BRICKS];
     SDL_Rect tempDim;
 
     ///Constructor Function
     GameLoop(settings s){
 
+        ///---Cursor, Player Input, and Powerup Initialization---///
         SDL_ShowCursor(SDL_DISABLE);
-        
         lInput = rInput = uInput = dInput = spInput = false;
         stuck = piercing = catching = lasers = false;
 
-        f_soundEnable = s.sfxEnable;//true;
+        ///---Game Settings Initialization---///
+        f_soundEnable = s.sfxEnable;
 
         if (s.difficulty == DIFFY_FREE){
             f_scoreEnable = false;
@@ -165,6 +162,7 @@ class GameLoop : public GameState
         }
 
         if (s.difficulty == DIFFY_EASY){
+            baseSpeed = 2;
             speedupThresh = 20;
             f_keepPwrUps = true;
         }
@@ -175,6 +173,7 @@ class GameLoop : public GameState
         if (s.multiEnable)
             f_multiMode = true;
 
+        ///---Playfield, Level, and Ball Initialization---///
         field.x = 0;
         field.y = SCOREBOARD_HEIGHT;
         field.w = SCREEN_WIDTH;
@@ -196,7 +195,7 @@ class GameLoop : public GameState
         for (int i = 0; i < MAX_LEVEL; i++)
             levelArray.push_back(i+1);
         
-
+        ///---Shuffle the level order if enabled---///
         if (f_shuffleLvls) {
             int tempVal;
             int tempIndex;
@@ -211,9 +210,6 @@ class GameLoop : public GameState
             }
         }
 
-        for (int i = 0; i < MAX_LEVEL; i++)
-            printf("Level %d is Round %d\n",i+1,levelArray[i]);
-
         //Load media
         if( !loadMedia() )
         {
@@ -221,11 +217,7 @@ class GameLoop : public GameState
         }
         else
         {
-            //Initialize playing field dimensions, difficulty, and appearance
-            lives = DEFAULT_LIVES;
-            score = 0;
-            pickupRate = DEFAULT_LUCK;
-
+            //Render text for scoreboard HUD
             if (!f_infiniteLives)
                 livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
             else
@@ -235,6 +227,7 @@ class GameLoop : public GameState
                 scoreTextTexture.loadFromRenderedText( updateText("Score: ", score), textColor);
             else
                 scoreTextTexture.loadFromRenderedText( updateText("Freeplay"), textColor);
+
             goNextLevel();
 
             //Initialize and display graphical interface
@@ -244,7 +237,9 @@ class GameLoop : public GameState
 
     ///Deconstructor
     ~GameLoop(){
+
         printf("Gamestate Object Deconstructing...\n");
+
         delayTimer.stop();
 
         //Free the sound effects
@@ -293,22 +288,19 @@ class GameLoop : public GameState
         scoreTextTexture.free();
 
         //delete all pointers and vectors and clear all elements
-        for (int i = wall.size() - 1; i >= 0; i--){
+        for (int i = wall.size() - 1; i >= 0; i--)
             delete wall[i];
-        }
+        wall.clear();
 
-        for (int i = balls.size() - 1; i >= 0; i--){
+        for (int i = balls.size() - 1; i >= 0; i--)
             delete balls[i];
-        }
+        balls.clear();
 
         if (laserA != NULL)
             delete laserA;
 
         if (laserB != NULL)
             delete laserB;
-
-        wall.clear();
-        balls.clear();
     }
 
     // Function to read in level data from a CSV file and store the values in an array.
@@ -498,7 +490,7 @@ class GameLoop : public GameState
 
         // Reset speed index and hit count for new ball/life
         hitCount = 0;
-        speedIndex = SPEED_INDEX_DEFAULT;
+        speedIndex = baseSpeed;
 
         // Use the new index value to calculate/reset paddle hit divider and launch velocity
         paddleHitDiv = PADDLE_HIT_DIVIDER + speedIndex * 2;
@@ -510,7 +502,7 @@ class GameLoop : public GameState
 
         // Obtain the current location of the paddle and set the ball's position at the middle
         tempDim = player.getDim();
-        offsetPB = thisBall->setOffset(tempDim.w/2);
+        int offsetPB = thisBall->setOffset(tempDim.w/2);
         thisBall->setPos(tempDim.x + offsetPB, tempDim.y - thisBall->getDim().h );
     }
 
@@ -623,30 +615,30 @@ class GameLoop : public GameState
                 if (piercing){
                     playSound( -1, sfx_brickDestroy , 0 );
                     destroy = true;
-                    addPoints(20);
+                    addPoints(BASE_POINTS * speedIndex * 2);
                 }
                 else {
                     playSound( -1, sfx_brickHit , 0 );
                     wall[index]->setType(BRICK_WHITE);
-                    addPoints(10);
+                    addPoints(BASE_POINTS * speedIndex);
                 }
             break;
             case BRICK_DARK:
                 if (piercing){
                     playSound( -1, sfx_brickDestroy , 0 );
                     destroy = true;
-                    addPoints(30);
+                    addPoints(BASE_POINTS * speedIndex * 3);
                 }
                 else {
                     playSound( -1, sfx_brickHit , 0 );
                     wall[index]->setType(BRICK_GRAY);
-                    addPoints(10);
+                    addPoints(BASE_POINTS * speedIndex);
                 }
             break;
             default:
                 playSound( -1, sfx_brickDestroy , 0 );
                 destroy = true;
-                addPoints(10);
+                addPoints(BASE_POINTS * speedIndex);
             break;
         }
 
@@ -723,8 +715,8 @@ class GameLoop : public GameState
         if (f_infiniteLives)
             return;
 
-        // If score increments past SCORE_LIFEUP threshold, add an extra life
-        if ( (score / SCORE_LIFEUP) > (tempScore / SCORE_LIFEUP) ){
+        // If score increments past lifeUpThresh threshold, add an extra life
+        if ( (score / lifeUpThresh) > (tempScore / lifeUpThresh) ){
             lives++;
             playSound( -1, sfx_lifeUp , 0 );
             livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
@@ -851,6 +843,9 @@ class GameLoop : public GameState
                         infoTextTexture.loadFromRenderedText( updateText("Paused"), textColor);
                         f_ShowInfo = true;
                     }
+
+                    if (f_GameOver)
+                        set_next_state(STATE_MENU);
                 break;
 
                 // Backspace ends the game and returns to main menu
@@ -1033,32 +1028,35 @@ class GameLoop : public GameState
             // Pickup Logic
             if (pickup != NULL){
 
-                bool f_PickupDelete = false;
+                // Update pickup position and register its dimensions.
                 pickup->move();
                 SDL_Rect pickupDim = pickup->getDim();
-                SDL_Point tempVel;
+                bool f_PickupDelete = false;
 
                 if (pickupDim.y + pickupDim.h > playerDim.y){
                     if (pickup->checkCollision(playerDim)){
 
-
+                        // If the player touches the pickup, evaluate its type and affect the game accordingly
+                        // All pickups play a unique sound effect, and display a color-coded info message when collected
                         switch (pickup->type){
-                            case PICKUP_POINT:
-                                
-                                addPoints(100);
+                            
+                            case PICKUP_POINT:  // Add some bonus points to the score total
+                                addPoints(BASE_POINTS * speedIndex * 10);
                                 playSound( -1, sfx_pwrPnts , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Bonus Points"), textColor);
                             break;
 
-                            case PICKUP_CATCH:
-
+                            case PICKUP_CATCH:  // Balls stick to the paddle on impact. Action button to release. Incompatible with lasers.
                                 catching = true;
                                 lasers = false;
                                 playSound( -1, sfx_pwrCatch , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Sticky Paddle"), textColor);
                             break;
 
-                            case PICKUP_MULTI:
+                            case PICKUP_MULTI:  // All active balls spawn a duplicate ball with a slightly different trajectory
+
+                                SDL_Point tempVel;
+
                                 for (int i = balls.size() - 1; i >= 0 ; i--){
                                     ballDim = balls[i]->getDim();
                                     tempVel = balls[i]->getVel();
@@ -1072,10 +1070,10 @@ class GameLoop : public GameState
                                     else if ( tempVel.y < 0)
                                         tempVel.y--;
 
-                                    // Why does the first multiball pickup spawn a ball stuck on the paddle?
                                     balls.push_back(new Ball(ballDim, tempVel));
 
-                                    // How to assign offset and stuck status to balls spawned while on paddle?
+                                    // Balls which are stuck to the paddle spawn duplicates wwhich are also stuck at the same offset.
+                                    // However, the stored velocity for launch will be slightly different.
                                     int j = balls.size()-1;
                                     if (tempVel.x == 0) {
                                         tempVel = balls[i]->getStoreVel();
@@ -1090,22 +1088,20 @@ class GameLoop : public GameState
                                 infoTextTexture.loadFromRenderedText( updateText("Multiball"), textColor);
                             break;
 
-                            case PICKUP_PIERCE:
+                            case PICKUP_PIERCE: // Ball and laser objects are not affected when colliding with bricks
                                 piercing = true;
-
                                 playSound( -1, sfx_pwrPierce , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Piercing"), textColor);
                             break;
 
-                            case PICKUP_SHOOT:
+                            case PICKUP_SHOOT:  // Enables twin lasers to be fired from each end of the paddle using the action input
                                 lasers = true;
                                 catching = false;
-
                                 playSound( -1, sfx_pwrShoot , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Lasers"), textColor);
                             break;
 
-                            case PICKUP_GROW: // TODO: Interactions with sticky
+                            case PICKUP_GROW: // Paddle size increases by a set amount. Can only grow twice above default size.
 
                                 if (playerDim.w < PADDLE_WIDTH + 2 * PADDLE_WIDTH_MOD){
                                     playerDim.w += PADDLE_WIDTH_MOD;
@@ -1123,7 +1119,7 @@ class GameLoop : public GameState
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Grow"), textColor);
                             break;
 
-                            case PICKUP_SHRINK: // TODO: Interactions with sticky
+                            case PICKUP_SHRINK: // Paddle size decreases by a set amount. Can only shrink twice below default size.
 
                                 if (playerDim.w > PADDLE_WIDTH - 2 * PADDLE_WIDTH_MOD){
                                     playerDim.w -= PADDLE_WIDTH_MOD;
@@ -1155,35 +1151,34 @@ class GameLoop : public GameState
                                 infoTextTexture.loadFromRenderedText( updateText("Paddle Shrink"), textColor);
                             break;
 
-                            case PICKUP_FAST:
-
+                            case PICKUP_FAST:   // All balls increase in speed. Paddle hit trajectory is also affected
                                 speedUp();
                                 playSound( -1, sfx_pwrSpeedUp , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Up"), textColor);
-
                             break;
 
-                            case PICKUP_SLOW:
-
+                            case PICKUP_SLOW:   // All balls decrease in speed. Paddle hit trajectory is also affected
                                 slowDown();
                                 playSound( -1, sfx_pwrSpeedDown , 0 );
                                 infoTextTexture.loadFromRenderedText( updateText("Ball Speed Down"), textColor);
-
                             break;
 
-                            case PICKUP_LIFE:
+                            case PICKUP_LIFE:   // Adds an extra life to the total. Does nothing if infinite lives are enabled
 
                                 if (!f_infiniteLives){
                                     lives++;
                                     playSound( -1, sfx_lifeUp , 0 );
                                     livesTextTexture.loadFromRenderedText( updateText("Lives: ", lives), textColor);
                                 }
+                                else
+                                    addPoints(BASE_POINTS * 100);
 
                                 infoTextTexture.loadFromRenderedText( updateText("Extra Life"), textColor);
                             break;
 
                         }
 
+                        // Display the info message and set its color to associate with the collected powerup. Mark pickup for deletion.
                         inR = pickup->r; inG = pickup->g; inB = pickup->b;
                         delayTimer.start();
                         f_ShowInfo = true;
@@ -1192,9 +1187,11 @@ class GameLoop : public GameState
                     }
                 }
 
+                // Mark pickup for deletion if it leaves the bottom of the screen
                 if (pickupDim.y > SCREEN_HEIGHT + 10)
                     f_PickupDelete = true;
 
+                // Delete the pickup is marked for deletion
                 if (f_PickupDelete){
                     delete pickup;
                     pickup = NULL;
@@ -1221,9 +1218,9 @@ class GameLoop : public GameState
                 tmpG = inG - (inG * delayTimer.getTicks() / DELAY_TIME);
             }
             else {
-                tmpR = inR;
-                tmpB = inB;
-                tmpG = inG;
+                tmpR = spR;
+                tmpB = spB;
+                tmpG = spG;
             }
 
             if (delayTimer.getTicks() > DELAY_TIME){
@@ -1240,7 +1237,6 @@ class GameLoop : public GameState
                 goNextLevel();
             }
         }
-
     }
 
     void render(){
@@ -1253,7 +1249,7 @@ class GameLoop : public GameState
         SDL_SetRenderDrawColor( gRenderer, scR, scG, scB, 0xFF );
         SDL_RenderFillRect(gRenderer, &scoreBoard);
 
-        // Set sprite color
+        // Set sprite color and render sprites
         SDL_SetRenderDrawColor( gRenderer, spR, spG, spB, 0xFF );
         player.render();
 
@@ -1270,19 +1266,22 @@ class GameLoop : public GameState
             laserB->render();
 
         if (pickup != NULL){
+
+            if (pickup->type == PICKUP_LIFE)
+                pickup->randomizeColor();
+
             SDL_SetRenderDrawColor( gRenderer, pickup->r, pickup->g, pickup->b, 0xFF );
             pickup->render();
         }
 
-        // Update Text color and render
-        // BUGNOTE: Whichever texture is rendered last causes all gRenderer entities to flicker when updated
         scoreTextTexture.setColor(spR, spG, spB);
         scoreTextTexture.render(5, 1 );
 
+        // BUGNOTE: Whichever text texture is rendered last causes all gRenderer entities to flicker when updated
         livesTextTexture.setColor(spR, spG, spB);
         livesTextTexture.render(SCREEN_WIDTH - livesTextTexture.getWidth(), 1 );
 
-        if (f_ShowInfo) {
+        if (f_ShowInfo) {   // Enabled when displaying the current level or powerup info
             infoTextTexture.setColor(tmpR, tmpG, tmpB);
             infoTextTexture.render(SCREEN_WIDTH/2 - infoTextTexture.getWidth()/2, SCREEN_HEIGHT - infoTextTexture.getHeight() * 2 );
         }
