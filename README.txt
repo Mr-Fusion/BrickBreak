@@ -13,7 +13,7 @@ If you are using a Mac or Linux OS, you will need to recompile the project in or
 This game was developed in C++ using SDL 2.0 libraries. I used Lazy Foo's tutorials to get started with this project, and I highly recommend following those tutorials in order to set up an SDL 2.0 environment for your development platform of choice.
 
 Lazy Foo's Website:
-[https://lazyfoo.net/tutorials/SDL/index.php](https://lazyfoo.net/tutorials/SDL/index.php)
+https://lazyfoo.net/tutorials/SDL/index.php
 
 ## How to Play
 
@@ -26,6 +26,7 @@ The angle/trajectory of the ball is determined by its offset when it collides wi
 Breaking a brick will award a number of points depending on the current speed of the ball. The ball will gradually speed up over time as bricks are destroyed. When all bricks on the screen are destroyed, a new level will load. There are currently 34 levels in total; can you beat them all in one sitting?
 
 ## Controls
+
 Mouse: Movement/Menu Navigation
 
 Left Click: Action/Select
