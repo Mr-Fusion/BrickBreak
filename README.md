@@ -25,6 +25,18 @@ The angle/trajectory of the ball is determined by its offset when it collides wi
 
 Breaking a brick will award a number of points depending on the current speed of the ball. The ball will gradually speed up over time as bricks are destroyed. When all bricks on the screen are destroyed, a new level will load. There are currently 34 levels in total; can you beat them all in one sitting?
 
+## Settings
+
+The settings menu can be accessed via the main menu. The following options and their effects are as follows:
+
+Sound Effects: Toggle sound playback off/on
+
+Difficulty: "Normal" is the default gameplay. "Easy" starts each level with a slower ball, and takes longer to speed up. Power-ups are also preserved between rounds. "Freeplay" features the same ball speed properties as normal, but with unlimited lives. However, scoring in Freeplay is disabled.
+
+Shuffle Levels: When enabled, the level layouts will be shuffled in a random order when the game is started. Levels will not repeat until 34 rounds are cleared.
+
+All Multiballs: All power-up spawns will be of the Multiball type. How many balls can you juggle at once?
+
 ## Controls
 
 Mouse: Movement/Menu Navigation
@@ -34,3 +46,27 @@ Left Click: Action/Select
 Escape: Pauses the Game (Returns to Menu when game is over)
 
 Backspace: Return to the menu (Anytime during normal gameplay)
+
+## Power-ups
+
+Power-ups randomly spawn when a brick is destroyed, and will slowly fall to the bottom of the screen. Catch one to activate its effects! The power-up effects are color-coded:
+
+White: Awards Bonus Points
+
+Cyan: Sticky Paddle. Balls will be caught by the paddle on impact, and can be released using the action input.
+
+Magenta: Multiball. All balls on the playing field will spawn a clone with a slightly different trajectory
+
+Purple: Piercing. The trajectory of ball and laser objects will not be affected when colliding with bricks
+
+Orange: Lasers. Enables twin lasers to be fired from each end of the paddle using the action input
+
+Blue: Increases the paddle size
+
+Red: Decreases the paddle size
+
+Green: Increases the speed of the ball
+
+Yellow: Decreases the speed of the ball
+
+Rainbow: Adds an extra life!
