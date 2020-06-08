@@ -51,22 +51,22 @@ Backspace: Return to the menu (Anytime during normal gameplay)
 
 Power-ups randomly spawn when a brick is destroyed, and will slowly fall to the bottom of the screen. Catch one to activate its effects! The power-up effects are color-coded:
 
-White: Awards Bonus Points
+__White:__ Awards Bonus Points
 
-Cyan: Sticky Paddle. Balls will be caught by the paddle on impact, and can be released using the action input.
+__Cyan:__ Sticky Paddle. Balls will be caught by the paddle on impact, and can be released using the action input.
 
-Magenta: Multiball. All balls on the playing field will spawn a clone with a slightly different trajectory
+__Magenta:__ Multiball. All balls on the playing field will spawn a clone with a slightly different trajectory
 
-Purple: Piercing. The trajectory of ball and laser objects will not be affected when colliding with bricks
+__Purple:__ Piercing. The trajectory of ball and laser objects will not be affected when colliding with bricks
 
-Orange: Lasers. Enables twin lasers to be fired from each end of the paddle using the action input
+__Orange:__ Lasers. Enables twin lasers to be fired from each end of the paddle using the action input
 
-Blue: Increases the paddle size
+__Blue:__ Increases the paddle size
 
-Red: Decreases the paddle size
+__Red:__ Decreases the paddle size
 
-Green: Increases the speed of the ball
+__Green:__ Increases the speed of the ball
 
-Yellow: Decreases the speed of the ball
+__Yellow:__ Decreases the speed of the ball
 
-Rainbow: Adds an extra life!
+__Rainbow:__ Adds an extra life!
