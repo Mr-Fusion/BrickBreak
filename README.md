@@ -31,7 +31,7 @@ The settings menu can be accessed via the main menu. The following options and t
 
 __Sound Effects:__ Toggle sound playback off/on
 
-__Difficulty:__ "Normal" is the default gameplay. "Easy" starts each level with a slower ball, and takes longer to speed up. Power-ups are also preserved between rounds. "Freeplay" features the same ball speed properties as normal, but with unlimited lives. However, scoring in Freeplay is disabled.
+__Difficulty:__ "Normal" is the default gameplay. "Easy" starts each level with a slower ball, and takes longer to speed up. Power-ups are also preserved between rounds. "Freeplay" features the same ball speed properties as Normal, but with unlimited lives. However, scoring in Freeplay is disabled.
 
 __Shuffle Levels:__ When enabled, the level layouts will be shuffled in a random order when the game is started. Levels will not repeat until 34 rounds are cleared.
 
