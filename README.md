@@ -29,13 +29,13 @@ Breaking a brick will award a number of points depending on the current speed of
 
 The settings menu can be accessed via the main menu. The following options and their effects are as follows:
 
-Sound Effects: Toggle sound playback off/on
+__Sound Effects:__ Toggle sound playback off/on
 
-Difficulty: "Normal" is the default gameplay. "Easy" starts each level with a slower ball, and takes longer to speed up. Power-ups are also preserved between rounds. "Freeplay" features the same ball speed properties as normal, but with unlimited lives. However, scoring in Freeplay is disabled.
+__Difficulty:__ "Normal" is the default gameplay. "Easy" starts each level with a slower ball, and takes longer to speed up. Power-ups are also preserved between rounds. "Freeplay" features the same ball speed properties as normal, but with unlimited lives. However, scoring in Freeplay is disabled.
 
-Shuffle Levels: When enabled, the level layouts will be shuffled in a random order when the game is started. Levels will not repeat until 34 rounds are cleared.
+__Shuffle Levels:__ When enabled, the level layouts will be shuffled in a random order when the game is started. Levels will not repeat until 34 rounds are cleared.
 
-All Multiballs: All power-up spawns will be of the Multiball type. How many balls can you juggle at once?
+__All Multiballs:__ All power-up spawns will be of the Multiball type. How many balls can you juggle at once?
 
 ## Controls
 
@@ -49,7 +49,7 @@ __Backspace:__ Return to the menu (Any time during normal gameplay)
 
 ## Power-ups
 
-Power-ups randomly spawn when a brick is destroyed, and will slowly fall to the bottom of the screen. Catch one to activate its effects! The power-up effects are color-coded:
+Power-ups have a random chance to spawn when a brick is destroyed, and will slowly fall to the bottom of the screen. Catch one to activate its effects! The power-up effects are color-coded:
 
 __White:__ Awards Bonus Points
 
