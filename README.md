@@ -39,13 +39,13 @@ All Multiballs: All power-up spawns will be of the Multiball type. How many ball
 
 ## Controls
 
-Mouse: Movement/Menu Navigation
+__Mouse:__ Movement/Menu Navigation
 
-Left Click: Action/Select
+__Left Click:__ Action/Select
 
-Escape: Pauses the Game (Returns to Menu when game is over)
+__Escape:__ Pauses the Game (Returns to menu when game is over)
 
-Backspace: Return to the menu (Anytime during normal gameplay)
+__Backspace:__ Return to the menu (Any time during normal gameplay)
 
 ## Power-ups
 
