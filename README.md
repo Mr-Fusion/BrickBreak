@@ -23,7 +23,7 @@ Move the mouse to control the position of the paddle. Left-click to interact wit
 
 The angle/trajectory of the ball is determined by its offset when it collides with the paddle. A collision toward the ends of the paddle will result in a wider shot than a collision toward the center of the paddle.
 
-Breaking a brick will award a number of points depending on the current speed of the ball. The ball will gradually speed up over time as bricks are destroyed. When all bricks on the screen are destroyed, a new level will load. There are currently 34 levels in total; can you beat them all in one sitting?
+Breaking a brick will award a number of points depending on the current speed of the ball. Collect 20,000 points for an extra life! The ball will gradually speed up over time as bricks are eliminated. When all bricks on the screen are destroyed, a new level will load. There are currently 34 levels in total; can you beat them all in one sitting?
 
 ## Settings
 
