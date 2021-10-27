@@ -21,5 +21,3 @@ Known Bugs:
 - Whichever texture is rendered last causes all gRenderer entities to flicker when updated
 	* Potentially need to take load off gRenderer somehow
 - In rare instances, the "Paused" info text does not appear when the game is paused
-
-hacktoberfest test1
